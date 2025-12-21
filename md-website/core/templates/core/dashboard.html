@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>CMMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark p-3">
+        <a class="navbar-brand" href="#">Kişisel Asistan</a>
+        <form action="{% url 'logout' %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button class="btn btn-outline-light btn-sm" type="submit">Çıkış Yap</button>
+        </form>
+    </nav>
+
+    <div class="container mt-4">
+        <h1>Hoşgeldin, {{ user.username }}!</h1>
+        <hr>
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Harcama Analizi</h5>
+                        <p class="card-text">Harcama/Gelir bilgilerini girerek paranı daha iyi analiz et.</p>
+                        <a href="{% url 'finance_dashboard' %}" class="btn btn-primary">Tıkla.</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Fiyat Takip</h5>
+                        <p class="card-text">Ürünleri ekle, fiyat düşünce haberin olsun.</p>
+                        <a href="{% url 'price_tracking_dashboard' %}" class="btn btn-primary">Tıkla.</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
