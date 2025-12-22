@@ -28,6 +28,11 @@ def start():
     scheduler.start()
     logger.info("🤖 Otomatik fiyat takip sistemi başlatıldı! (Her 30 dakikada bir çalışacak)")
     print("🤖 Otomatik fiyat takip sistemi başlatıldı! (Her 30 dakikada bir çalışacak)")
+    
+    # İlk kontrolü hemen yap (30 dakika bekleme)
+    logger.info("🚀 İlk fiyat kontrolü başlatılıyor...")
+    print("🚀 İlk fiyat kontrolü başlatılıyor...")
+    run_price_check()
 
 def run_price_check():
     """Background job that checks all product prices"""
