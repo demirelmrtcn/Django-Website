@@ -1,0 +1,7 @@
+Django
+selenium
+webdriver-manager
+beautifulsoup4
+python-dateutil
+python-dotenv
+requests

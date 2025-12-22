@@ -188,9 +188,45 @@ def price_tracking_dashboard(request):
 
     products = TrackedProduct.objects.filter(user=request.user).order_by('-last_checked')
 
+    # --- GRAFİK İÇİN VERİ HAZIRLIĞI ---
+    # Her ürün için tarihçeyi çekip Chart.js formatına çevireceğiz
+    chart_data = {
+        'labels': [],  # Tarihler (Ortak eksen)
+        'datasets': []
+    }
+
+    # Eğer ürün varsa grafik verisi oluştur
+    if products.exists():
+        # Grafik renkleri (Otomatik renk atamak için basit bir liste)
+        colors = ['#0d6efd', '#dc3545', '#198754', '#ffc107', '#6f42c1', '#fd7e14', '#20c997']
+
+        for i, product in enumerate(products):
+            # Son 10 fiyat hareketini al
+            history = product.history.all().order_by('date')[:10]
+
+            data_points = []
+            labels = []
+            for h in history:
+                data_points.append(float(h.price))
+                # Tarih formatı: "22 Ara 14:30"
+                labels.append(h.date.strftime('%d %b %H:%M'))
+
+            chart_data['datasets'].append({
+                'label': product.custom_name or product.product_name[:15],
+                'data': data_points,
+                'borderColor': colors[i % len(colors)],  # Renk sırasıyla
+                'fill': False,
+                'tension': 0.1
+            })
+
+            # Eksen etiketlerini (zamanı) son ürünün tarihine göre set edelim (Basit çözüm)
+            if len(labels) > len(chart_data['labels']):
+                chart_data['labels'] = labels
+
     context = {
         'products': products,
         'form': form,
+        'chart_data': json.dumps(chart_data),
     }
     return render(request, 'core/price_tracking.html', context)
 
@@ -331,61 +367,5 @@ def run_price_bot(request):
     return StreamingHttpResponse(event_stream(), content_type='application/x-ndjson')
 
 
-@login_required
-def price_tracking_dashboard(request):
-    # ... (POST işlemleri aynı kalsın) ...
-    if request.method == 'POST' and 'add_product' in request.POST:
-        # ... (Burası aynı) ...
-        # (Sadece create kısmına previous_price=0 eklemene gerek yok, default 0 zaten)
-        pass  # Kodun geri kalanı aynı
 
-    else:
-        form = AddProductForm()
 
-    products = TrackedProduct.objects.filter(user=request.user).order_by('-last_checked')
-
-    # --- GRAFİK İÇİN VERİ HAZIRLIĞI ---
-    # Her ürün için tarihçeyi çekip Chart.js formatına çevireceğiz
-    chart_data = {
-        'labels': [],  # Tarihler (Ortak eksen)
-        'datasets': []
-    }
-
-    # Eğer ürün varsa grafik verisi oluştur
-    if products.exists():
-        # Grafik renkleri (Otomatik renk atamak için basit bir liste)
-        colors = ['#0d6efd', '#dc3545', '#198754', '#ffc107', '#6f42c1', '#fd7e14', '#20c997']
-
-        for i, product in enumerate(products):
-            # Son 10 fiyat hareketini al
-            history = product.history.all().order_by('date')[:10]
-
-            data_points = []
-            labels = []
-            for h in history:
-                data_points.append(float(h.price))
-                # Tarih formatı: "22 Ara 14:30"
-                labels.append(h.date.strftime('%d %b %H:%M'))
-
-            # Etiketleri sadece ilk ürün için veya birleştirerek ayarlayabiliriz
-            # Basitlik adına: Her ürün kendi zaman çizelgesine sahip olabilir ama
-            # Chart.js'de multiline için data pointleri gönderiyoruz.
-
-            chart_data['datasets'].append({
-                'label': product.custom_name or product.product_name[:15],
-                'data': data_points,
-                'borderColor': colors[i % len(colors)],  # Renk sırasıyla
-                'fill': False,
-                'tension': 0.1
-            })
-
-            # Eksen etiketlerini (zamanı) son ürünün tarihine göre set edelim (Basit çözüm)
-            if len(labels) > len(chart_data['labels']):
-                chart_data['labels'] = labels
-
-    context = {
-        'products': products,
-        'form': form,
-        'chart_data': json.dumps(chart_data),  # JSON olarak HTML'e gönder
-    }
-    return render(request, 'core/price_tracking.html', context)
