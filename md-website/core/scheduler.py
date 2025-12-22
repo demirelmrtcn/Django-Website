@@ -1,6 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from django.conf import settings
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 scheduler = None
@@ -35,19 +36,27 @@ def start():
     run_price_check()
 
 def run_price_check():
-    """Background job that checks all product prices"""
+    """Background job that checks all product prices in a separate thread"""
     from .price_checker import check_all_prices
     
     logger.info("⏰ Otomatik fiyat kontrolü başlıyor...")
     print("⏰ Otomatik fiyat kontrolü başlıyor...")
     
-    try:
-        check_all_prices()
-        logger.info("✅ Otomatik fiyat kontrolü tamamlandı!")
-        print("✅ Otomatik fiyat kontrolü tamamlandı!")
-    except Exception as e:
-        logger.error(f"❌ Otomatik fiyat kontrolü hatası: {e}")
-        print(f"❌ Otomatik fiyat kontrolü hatası: {e}")
+    # Thread'de çalıştır ki Django'yu bloklamasın
+    def threaded_check():
+        try:
+            check_all_prices()
+            logger.info("✅ Otomatik fiyat kontrolü tamamlandı!")
+            print("✅ Otomatik fiyat kontrolü tamamlandı!")
+        except Exception as e:
+            logger.error(f"❌ Otomatik fiyat kontrolü hatası: {e}")
+            print(f"❌ Otomatik fiyat kontrolü hatası: {e}")
+    
+    # Thread başlat ve devam et (non-blocking)
+    thread = threading.Thread(target=threaded_check, daemon=True)
+    thread.start()
+    logger.info("📌 Fiyat kontrolü thread'de çalışıyor, site kullanılabilir durumda")
+    print("📌 Fiyat kontrolü thread'de çalışıyor, site kullanılabilir durumda")
 
 def shutdown():
     """Shutdown the scheduler gracefully"""

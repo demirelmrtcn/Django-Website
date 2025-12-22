@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.contrib.auth import views as auth_views # Django'nun hazır giriş/çıkış sistemi
 from core import views # Bizim yazdığımız views dosyası
+from core.auth_views import register, verify_email, resend_verification_code
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,4 +25,9 @@ urlpatterns = [
     path('fiyat-takip/sil/<int:id>/', views.delete_product, name='delete_product'),
 
     path('fiyat-takip/bot-baslat/', views.run_price_bot, name='run_price_bot'),
+    
+    # Registration & Email Verification
+    path('register/', register, name='register'),
+    path('verify-email/<int:user_id>/', verify_email, name='verify_email'),
+    path('resend-code/<int:user_id>/', resend_verification_code, name='resend_code'),
 ]

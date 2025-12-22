@@ -1,42 +1,244 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
-    <title>Hoş geldin :) - MD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Kişisel Asistan</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-section {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-section h1 {
+            color: white;
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .welcome-section p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            height: 100%;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .feature-card h3 {
+            color: #2d3748;
+            font-weight: 700;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .feature-card p {
+            color: #718096;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn-feature {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-feature:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            border: none;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .stats-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+            color: #2d3748;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 15px rgba(253, 203, 110, 0.4);
+        }
+    </style>
 </head>
+
 <body>
-    <nav class="navbar navbar-dark bg-dark p-3">
-        <a class="navbar-brand" href="#">Kişisel Asistan</a>
-        <form action="{% url 'logout' %}" method="post" class="d-inline">
-            {% csrf_token %}
-            <button class="btn btn-outline-light btn-sm" type="submit">Çıkış Yap</button>
-        </form>
+    <!-- Navbar -->
+    <nav class="navbar navbar-custom">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+                <i class="fas fa-rocket me-2" style="color: #667eea;"></i>
+                Kişisel Asistan
+            </a>
+            <div>
+                <span class="me-3 text-dark">
+                    <i class="fas fa-user-circle me-1"></i>
+                    {{ user.username }}
+                </span>
+                <a href="{% url 'logout' %}" class="btn logout-btn">
+                    <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
+                </a>
+            </div>
+        </div>
     </nav>
 
-    <div class="container mt-4">
-        <h1>Hoşgeldin, {{ user.username }}!</h1>
-        <hr>
-        <div class="row mt-4">
+    <div class="container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1>
+                <i class="fas fa-hand-sparkles me-3"></i>
+                Hoşgeldin, {{ user.username }}!
+            </h1>
+            <p>Günlük işlemlerinizi yönetmek için hazırız. Hangi özelliği kullanmak istersiniz?</p>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="row g-4 mb-5">
+            <!-- Harcama Analizi Card -->
             <div class="col-md-6">
-                <div class="card text-center h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Harcama Analizi</h5>
-                        <p class="card-text">Harcama/Gelir bilgilerini girerek paranı daha iyi analiz et.</p>
-                        <a href="{% url 'finance_dashboard' %}" class="btn btn-primary">Tıkla.</a>
+                <div class="feature-card">
+                    <span class="stats-badge">
+                        <i class="fas fa-chart-line me-1"></i> Aktif
+                    </span>
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-pie"></i>
                     </div>
+                    <h3>Harcama Analizi</h3>
+                    <p>Harcamalarınızı takip edin, gelir-gider dengenizi görün ve mali durumunuzu analiz edin.</p>
+                    <a href="{% url 'finance_dashboard' %}" class="btn-feature">
+                        <i class="fas fa-arrow-right me-2"></i>Hemen Başla
+                    </a>
                 </div>
             </div>
+
+            <!-- Fiyat Takip Card -->
             <div class="col-md-6">
-                <div class="card text-center h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Fiyat Takip</h5>
-                        <p class="card-text">Ürünleri ekle, fiyat düşünce haberin olsun.</p>
-                        <a href="{% url 'price_tracking_dashboard' %}" class="btn btn-primary">Tıkla.</a>
+                <div class="feature-card">
+                    <span class="stats-badge">
+                        <i class="fas fa-robot me-1"></i> Otomatik
+                    </span>
+                    <div class="feature-icon">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <h3>Fiyat Takip</h3>
+                    <p>Ürünlerin fiyat değişimlerini takip edin ve en iyi fırsatları kaçırmayın.</p>
+                    <a href="{% url 'price_tracking_dashboard' %}" class="btn-feature">
+                        <i class="fas fa-arrow-right me-2"></i>Hemen Başla
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div
+                    style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 25px; border: 1px solid rgba(255,255,255,0.2);">
+                    <div class="row text-white text-center">
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                            <h5>Güvenli</h5>
+                            <p class="small mb-0">Verileriniz güvende</p>
+                        </div>
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <h5>7/24 Aktif</h5>
+                            <p class="small mb-0">Her zaman erişilebilir</p>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                            <h5>Responsive</h5>
+                            <p class="small mb-0">Tüm cihazlarda çalışır</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
