@@ -157,6 +157,18 @@ def price_tracking_dashboard(request):
                 messages.error(request, "Trendyol şu an desteklenmemektedir.")
                 return redirect('price_tracking_dashboard')
 
+            # DUPLICATE KONTROLÜ - Aynı URL ve aynı email varsa ekleme
+            existing_product = TrackedProduct.objects.filter(
+                user=request.user,
+                url=url,
+                notification_email=email
+            ).first()
+            
+            if existing_product:
+                messages.warning(request, 
+                    f"Bu ürün ({existing_product.product_name}) zaten bu mail adresiyle takip ediliyor!")
+                return redirect('price_tracking_dashboard')
+
             try:
                 scraped_data = get_product_details(url)
             except Exception as e:
@@ -236,6 +248,8 @@ def delete_product(request, id):
     product = get_object_or_404(TrackedProduct, id=id, user=request.user)
     product.delete()
     return redirect('price_tracking_dashboard')
+
+
 
 
 @login_required

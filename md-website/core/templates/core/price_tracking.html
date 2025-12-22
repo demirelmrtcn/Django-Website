@@ -1,7 +1,7 @@
 {% load humanize %}
-
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <title>Fiyat Takip</title>
@@ -9,39 +9,37 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body class="bg-light">
-
     <div class="container mt-5">
-
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
         {% endif %}
-
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="fw-bold"><i class="fas fa-tags text-primary"></i> Fiyat Takip Sistemi</h3>
             <div>
                 <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Ana Menü</a>
             </div>
         </div>
-
         <div class="row mb-4">
             <div class="col-md-8">
-                <button type="button" class="btn btn-primary w-100 py-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                <button type="button" class="btn btn-primary w-100 py-3 shadow-sm fw-bold" data-bs-toggle="modal"
+                    data-bs-target="#addProductModal">
                     <i class="fas fa-plus me-2"></i> TAKİP EDİLECEK ÜRÜN EKLE
                 </button>
             </div>
             <div class="col-md-4">
-                <button type="button" onclick="startBotProcess()" class="btn btn-warning w-100 py-3 shadow-sm fw-bold text-dark">
+                <button type="button" onclick="startBotProcess()"
+                    class="btn btn-warning w-100 py-3 shadow-sm fw-bold text-dark">
                     <i class="fas fa-sync-alt me-2"></i> TAKİP BOTUNU BAŞLAT
                 </button>
             </div>
         </div>
-
         <div class="card shadow-sm mb-5">
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
@@ -63,69 +61,73 @@
                             <td class="ps-4">
                                 <span class="badge bg-secondary">{{ product.site_name }}</span>
                             </td>
-
                             <td>
-                                <a href="{{ product.url }}" target="_blank" class="text-decoration-none fw-bold text-dark">
+                                <a href="{{ product.url }}" target="_blank"
+                                    class="text-decoration-none fw-bold text-dark">
                                     {% if product.custom_name %}
-                                        {{ product.custom_name }}
-                                        <div class="small text-muted fw-normal">{{ product.product_name|truncatechars:35 }}</div>
+                                    {{ product.custom_name }}
+                                    <div class="small text-muted fw-normal">{{ product.product_name|truncatechars:35 }}
+                                    </div>
                                     {% else %}
-                                        {{ product.product_name|truncatechars:50 }}
+                                    {{ product.product_name|truncatechars:50 }}
                                     {% endif %}
                                 </a>
                             </td>
-
                             <td>
-                                <span class="text-dark small fw-bold">{{ product.seller_name|default:"-"|truncatechars:15 }}</span>
+                                <div class="text-dark small fw-bold">
+                                    {{ product.seller_name|default:"-"|truncatechars:15}} </div>
                             </td>
-
                             <td class="text-end" style="min-width: 140px;">
                                 <div class="d-flex flex-column align-items-end">
                                     {% if product.original_price > product.current_price %}
-                                        <small class="text-decoration-line-through text-muted" style="font-size: 0.8rem;">
-                                            {{ product.original_price|intcomma }} ₺
-                                        </small>
-                                        <span class="fw-bold text-danger fs-5 text-nowrap">
-                                            {{ product.current_price|intcomma }} ₺
-                                        </span>
+                                    <small class="text-decoration-line-through text-muted" style="font-size: 0.8rem;">
+                                        {{ product.original_price|intcomma }} ₺
+                                    </small>
+                                    <span class="fw-bold text-danger fs-5 text-nowrap">
+                                        {{ product.current_price|intcomma }} ₺
+                                    </span>
                                     {% else %}
-                                        <span class="fw-bold text-primary fs-5 text-nowrap">
-                                            {{ product.current_price|intcomma }} ₺
-                                        </span>
+                                    <span class="fw-bold text-primary fs-5 text-nowrap">
+                                        {{ product.current_price|intcomma }} ₺
+                                    </span>
                                     {% endif %}
                                 </div>
                             </td>
-
                             <td class="text-center" style="min-width: 160px;">
                                 <div class="d-flex flex-column align-items-center justify-content-center">
                                     {% if product.last_status == 'dropped' %}
-                                        <span class="badge bg-success mb-1 w-100">
-                                            <i class="fas fa-arrow-down me-1"></i> Fiyat Düştü
-                                        </span>
-                                        <div class="bg-light border rounded px-2 py-1 small text-success fw-bold text-nowrap">
-                                            {{ product.previous_price|intcomma }} <i class="fas fa-arrow-right mx-1 text-muted"></i> {{ product.current_price|intcomma }}
-                                        </div>
+                                    <span class="badge bg-success mb-1 w-100">
+                                        <i class="fas fa-arrow-down me-1"></i> Fiyat Düştü
+                                    </span>
+                                    <div
+                                        class="bg-light border rounded px-2 py-1 small text-success fw-bold text-nowrap">
+                                        {{ product.previous_price|intcomma }} <i
+                                            class="fas fa-arrow-right mx-1 text-muted"></i>
+                                        {{product.current_price|intcomma }}
+                                    </div>
                                     {% elif product.last_status == 'increased' %}
-                                        <span class="badge bg-danger mb-1 w-100">
-                                            <i class="fas fa-arrow-up me-1"></i> Fiyat Yükseldi
-                                        </span>
-                                        <div class="bg-light border rounded px-2 py-1 small text-danger fw-bold text-nowrap">
-                                            {{ product.previous_price|intcomma }} <i class="fas fa-arrow-right mx-1 text-muted"></i> {{ product.current_price|intcomma }}
-                                        </div>
+                                    <span class="badge bg-danger mb-1 w-100">
+                                        <i class="fas fa-arrow-up me-1"></i> Fiyat Yükseldi
+                                    </span>
+                                    <div
+                                        class="bg-light border rounded px-2 py-1 small text-danger fw-bold text-nowrap">
+                                        {{ product.previous_price|intcomma }} <i
+                                            class="fas fa-arrow-right mx-1 text-muted"></i>
+                                        {{ product.current_price|intcomma }}
+                                    </div>
                                     {% else %}
-                                        <span class="badge bg-secondary w-100 py-2">
-                                            <i class="fas fa-equals me-1"></i> Aynı Fiyat
-                                        </span>
+                                    <span class="badge bg-secondary w-100 py-2">
+                                        <i class="fas fa-equals me-1"></i> Aynı Fiyat
+                                    </span>
                                     {% endif %}
                                 </div>
                             </td>
-
                             <td class="text-muted small">{{ product.notification_email|truncatechars:20 }}</td>
-
                             <td class="text-muted small text-nowrap">{{ product.last_checked|date:"d M H:i" }}</td>
-
                             <td class="text-center">
-                                <a href="{% url 'delete_product' product.id %}" class="btn btn-sm btn-outline-danger border-0" onclick="return confirm('Silmek istediğinize emin misiniz?');">
+                                <a href="{% url 'delete_product' product.id %}"
+                                    class="btn btn-sm btn-outline-danger border-0"
+                                    onclick="return confirm('Silmek istediğinize emin misiniz?');">
                                     <i class="fas fa-trash-alt"></i>
                                 </a>
                             </td>
@@ -136,7 +138,6 @@
                 </table>
             </div>
         </div>
-
         <div class="card shadow-sm mt-5 mb-5">
             <div class="card-header bg-dark text-white">
                 <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Fiyat Değişim Grafiği</h5>
@@ -145,9 +146,7 @@
                 <canvas id="priceHistoryChart" style="max-height: 400px;"></canvas>
             </div>
         </div>
-
     </div>
-
     <div class="modal fade" id="addProductModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -159,22 +158,19 @@
                     <div class="modal-body">
                         {% csrf_token %}
                         <input type="hidden" name="add_product" value="1">
-
                         <div class="mb-3">
                             <label class="form-label fw-bold">Kendi Vereceğiniz İsim (Opsiyonel)</label>
                             {{ form.custom_name }}
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label fw-bold">Bildirim Mail Adresi</label>
                             {{ form.notification_email }}
                             <div class="form-text">Fiyat düştüğünde bu adrese mail atılacaktır.</div>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label fw-bold">Ürün Linki</label>
                             {{ form.url }}
-                            <div class="form-text">Amazon, Hepsiburada linki yapıştırın.</div>
+                            <div class="form-text">Amazon, Hepsiburada, Sephora, Zara linki yapıştırın.</div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -186,7 +182,6 @@
             </div>
         </div>
     </div>
-
     <div class="modal fade" id="progressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -197,14 +192,12 @@
                     <div class="mb-3">
                         <i class="fas fa-sync-alt fa-spin fa-3x text-warning"></i>
                     </div>
-
                     <h6 id="progressMessage" class="fw-bold mb-3">Hazırlanıyor...</h6>
-
                     <div class="progress" style="height: 25px;">
-                        <div id="botProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold"
-                             role="progressbar" style="width: 0%">0%</div>
+                        <div id="botProgressBar"
+                            class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold"
+                            role="progressbar" style="width: 0%">0%</div>
                     </div>
-
                     <div class="mt-2 text-muted small">Lütfen pencereyi kapatmayın.</div>
                 </div>
                 <div class="modal-footer" id="modalFooter" style="display: none;">
@@ -215,16 +208,12 @@
             </div>
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
         // --- GRAFİK OLUŞTURMA (REVİZE EDİLDİ) ---
         const chartData = JSON.parse('{{ chart_data|safe }}');
-
         if (chartData.datasets && chartData.datasets.length > 0) {
             const ctx = document.getElementById('priceHistoryChart').getContext('2d');
-
             // Grafik için renk paleti (Gradient geçişler için)
             const gradientColors = [
                 'rgba(13, 110, 253, 0.2)', // Mavi
@@ -232,7 +221,6 @@
                 'rgba(25, 135, 84, 0.2)',  // Yeşil
                 'rgba(255, 193, 7, 0.2)'   // Sarı
             ];
-
             // Veri seti ayarlarını iyileştir
             chartData.datasets.forEach((dataset, index) => {
                 dataset.pointRadius = 6;           // Nokta büyüklüğü (Daha belirgin)
@@ -241,11 +229,9 @@
                 dataset.borderWidth = 3;           // Çizgi kalınlığı
                 dataset.tension = 0.3;             // Çizgileri yumuşat
                 dataset.fill = true;               // Çizginin altını doldur
-
                 // Alt dolgu rengi (Sırayla renk ata)
                 dataset.backgroundColor = gradientColors[index % gradientColors.length];
             });
-
             new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -275,7 +261,7 @@
                             bodyFont: { size: 14 },
                             padding: 12,
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     let label = context.dataset.label || '';
                                     if (label) {
                                         label += ': ';
@@ -305,7 +291,7 @@
                                 borderDash: [5, 5]
                             },
                             ticks: {
-                                callback: function(value) {
+                                callback: function (value) {
                                     return value.toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' ₺';
                                 }
                             }
@@ -317,35 +303,27 @@
             document.getElementById('priceHistoryChart').parentElement.innerHTML =
                 '<div class="text-center text-muted py-5"><i class="fas fa-chart-line fa-3x mb-3 text-secondary opacity-25"></i><br>Grafik verisi oluşması için botun çalıştırılması ve fiyat değişimi yakalanması gerekmektedir.</div>';
         }
-
         // --- BOT İŞLEMLERİ (Önceki kod aynen kalıyor) ---
         async function startBotProcess() {
             const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
             progressModal.show();
-
             const progressBar = document.getElementById('botProgressBar');
             const messageBox = document.getElementById('progressMessage');
             const footer = document.getElementById('modalFooter');
             const icon = document.querySelector('.modal-body i');
-
             try {
                 const response = await fetch("{% url 'run_price_bot' %}");
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
-
                     const chunk = decoder.decode(value, { stream: true });
                     const lines = chunk.split('\n');
-
                     for (const line of lines) {
                         if (!line.trim()) continue;
-
                         try {
                             const data = JSON.parse(line);
-
                             if (data.status === 'progress' || data.status === 'mailing') {
                                 progressBar.style.width = data.percent + '%';
                                 progressBar.textContent = data.percent + '%';
@@ -372,4 +350,5 @@
         }
     </script>
 </body>
+
 </html>

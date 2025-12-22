@@ -51,6 +51,10 @@ class TrackedProduct(models.Model):
     # --- YENİ EKLENEN ALANLAR ---
     notification_email = models.EmailField(verbose_name="Bildirim Maili", default="")
     last_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='stable', verbose_name="Son Durum")
+    
+    # --- VARYANT ALANLARI (SEPHORA İÇİN) ---
+    variant_sku = models.CharField(max_length=100, blank=True, null=True, verbose_name="Varyant SKU")
+    variant_size = models.CharField(max_length=50, blank=True, null=True, verbose_name="Boyut/Varyant")
 
     def __str__(self):
         return self.product_name

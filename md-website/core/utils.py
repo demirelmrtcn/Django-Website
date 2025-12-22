@@ -8,6 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import re
 import time
+import json
 
 
 def clean_price(price_text):
@@ -16,14 +17,62 @@ def clean_price(price_text):
         return 0.0
     price_text = str(price_text)
     clean_str = re.sub(r'[^\d.,]', '', price_text)
+    
+    # TÜRK FORMAT DESTEĞİ
     if ',' in clean_str and '.' in clean_str:
+        # Hem virgül hem nokta var: Nokta binlik ayırıcı, virgül ondalık
+        # Örnek: "5.250,00" = 5250.00
         clean_str = clean_str.replace('.', '').replace(',', '.')
     elif ',' in clean_str:
+        # Sadece virgül var: Ondalık ayırıcı
+        # Örnek: "5250,00" = 5250.00
         clean_str = clean_str.replace(',', '.')
+    elif '.' in clean_str:
+        # Sadece nokta var: Pozisyona göre karar ver
+        parts = clean_str.split('.')
+        if len(parts) == 2 and len(parts[1]) == 2:
+            # Son kısım tam 2 basamaksa, ondalık olabilir
+            # Örnek: "52.50" = 52.50
+            pass  # Nokta ondalık, değiştirme
+        elif len(parts[-1]) == 3 or len(parts) > 2:
+            # Son kısım 3 basamaksa veya birden fazla nokta varsa, binlik ayırıcı
+            # Örnek: "5.250" = 5250 veya "1.250.000" = 1250000
+            clean_str = clean_str.replace('.', '')
+        # Belirsiz durumda (örn "52.5"), nokta ondalık kabul edilir
+    
     try:
         return float(clean_str)
     except ValueError:
         return 0.0
+
+
+
+def get_json_ld(soup):
+    """ Sayfadaki JSON-LD verilerini tarar ve ürün fiyatı/bilgisi döndürür """
+    try:
+        scripts = soup.find_all('script', type='application/ld+json')
+        for script in scripts:
+            try:
+                data = json.loads(script.get_text(strip=True))
+                # Bazen data bir liste olabilir
+                if isinstance(data, list):
+                    for item in data:
+                        if item.get('@type') == 'Product':
+                            return item
+                elif isinstance(data, dict):
+                    if data.get('@type') == 'Product':
+                        return data
+                    # Bazen Product, @graph içinde olabilir
+                    if '@graph' in data:
+                        for item in data['@graph']:
+                            if item.get('@type') == 'Product':
+                                return item
+            except:
+                continue
+    except:
+        pass
+    return None
+
 
 
 def get_product_details(url):
@@ -50,10 +99,14 @@ def get_product_details(url):
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    chrome_options.add_experimental_option('useAutomationExtension', False)
-
-    # Konsol hatalarını gizle (PHONE_REGISTRATION_ERROR vb.)
-    chrome_options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option("useAutomationExtension", False)
+    
+    # Hataları ve logları suppress et
+    chrome_options.add_argument("--log-level=3")  # FATAL only
+    chrome_options.add_argument("--disable-logging")
 
     driver = None
     data = {"site": "", "title": "", "price": 0.0, "original_price": 0.0, "seller": "-"}
@@ -145,9 +198,6 @@ def get_product_details(url):
                 grid_container = soup.select_one(".odf-grid-max-50-50-columns")
 
             if grid_container:
-                # Kutunun içindeki tüm yazıları sırayla listeye alıyoruz.
-                # Örn 1: ['Gönderici', 'Amazon', 'Satıcı', 'Ny212Trading', 'Ödeme', ...]
-                # Örn 2: ['Gönderici / Satıcı', 'Amazon.com.tr', 'Hediye...', ...]
                 texts = [t.strip() for t in grid_container.stripped_strings if t.strip()]
 
                 for i, text in enumerate(texts):
@@ -180,6 +230,154 @@ def get_product_details(url):
                 bb_seller = soup.find("span", {"class": "offer-display-group-text"})
                 if bb_seller:
                     data["seller"] = bb_seller.get_text(strip=True)
+
+        # --- ZARA ---
+        elif "zara" in url:
+            data["site"] = "Zara"
+            data["seller"] = "Zara"
+
+            # 1. BAŞLIK
+            h1 = soup.find("h1")
+            data["title"] = h1.get_text(strip=True) if h1 else "Zara Ürünü"
+
+            # 2. FİYAT
+            # Zara genelde 'money-amount__main' veya 'price-current__amount' kullanır
+            price_elem = soup.select_one(".money-amount__main")
+            if not price_elem:
+                price_elem = soup.select_one(".price-current__amount .money-amount__main")
+            
+            # İndirimli fiyat kontrolü (sale price)
+            if not price_elem:
+                price_elem = soup.select_one("span.price-current__amount")
+
+            if price_elem:
+                data["price"] = clean_price(price_elem.get_text())
+
+        # --- SEPHORA ---
+        elif "sephora" in url:
+            data["site"] = "Sephora"
+            data["seller"] = "Sephora"
+
+            # 0. BOYUT VARYANTI KONTROLÜ (ÖNCELİK)
+            # Sephora'da boyut seçimi JavaScript ile yapılır, seçili olan variant'ı bulmamız gerekir
+            selected_variant_price = 0
+            
+            # Yöntem 1: Seçili/Aktif boyutun fiyatını bul
+            # Genelde "selected", "active", "checked" gibi class'lar kullanılır
+            size_containers = soup.find_all(["div", "button", "label"], class_=lambda x: x and ("size" in x.lower() or "sku" in x.lower() or "variant" in x.lower()))
+            
+            for container in size_containers:
+                # Seçili/aktif elemanı kontrol et
+                if any(cls in str(container.get('class', [])).lower() for cls in ['selected', 'active', 'checked', 'current']):
+                    # Bu container içinde fiyat var mı?
+                    price_in_variant = container.find(string=re.compile(r'\d+[.,]\d+'))
+                    if price_in_variant:
+                        variant_price = clean_price(price_in_variant)
+                        if variant_price > 10:  # Geçerli bir fiyat
+                            selected_variant_price = variant_price
+                            break
+            
+            # Yöntem 2: Radio button veya checkbox ile seçili olan boyutu bul
+            if selected_variant_price == 0:
+                checked_inputs = soup.find_all("input", {"checked": True, "type": ["radio", "checkbox"]})
+                for inp in checked_inputs:
+                    # Bu input'un yanındaki label veya parent'ında fiyat var mı?
+                    parent = inp.parent
+                    if parent:
+                        price_text = parent.find(string=re.compile(r'\d+[.,]\d+'))
+                        if price_text:
+                            variant_price = clean_price(price_text)
+                            if variant_price > 10:
+                                selected_variant_price = variant_price
+                                break
+            
+            # Seçili varyant fiyatı bulunduysa, onu kullan
+            if selected_variant_price > 0:
+                data["price"] = selected_variant_price
+
+            # 1. JSON-LD KONTROLÜ (Yedek strateji)
+            if data["price"] == 0:
+                json_ld = get_json_ld(soup)
+                if json_ld:
+                    # Başlık
+                    if 'name' in json_ld:
+                        data["title"] = json_ld['name']
+                    
+                    # Fiyat
+                    offers = json_ld.get('offers')
+                    if offers:
+                        offer = offers[0] if isinstance(offers, list) and offers else offers
+                        if isinstance(offer, dict) and 'price' in offer:
+                            try:
+                                data["price"] = float(offer['price'])
+                            except:
+                                data["price"] = clean_price(str(offer['price']))
+
+            # 2. BAŞLIK (Eğer JSON-LD'den gelmediyse)
+            if not data["title"]:
+                h1 = soup.find("h1")
+                if h1:
+                    data["title"] = h1.get_text(" ", strip=True)
+                else:
+                    h1_alt = soup.find("span", {"data-at": "product_name"})
+                    data["title"] = h1_alt.get_text(strip=True) if h1_alt else "Sephora Ürünü"
+
+            # 3. FİYAT - ÇOK KATMANLI STRATEJI (Eğer varyant bulunamadıysa)
+            if data["price"] == 0:
+                # Strateji 1: Kullanıcının önerdiği class (ancak sadece taksitsiz olanı)
+                price_divs = soup.find_all("div", class_="product-price")
+                for pdiv in price_divs:
+                    text = pdiv.get_text()
+                    # Taksit içermeyen ve sadece fiyat olan elemanı bul
+                    if "taksit" not in text.lower() and "x" not in text.lower():
+                        # En büyük rakamı al (genelde asıl fiyattır)
+                        numbers = re.findall(r'\d+[.,]\d+|\d+', text)
+                        if numbers:
+                            # En büyük sayıyı bul (genelde ana fiyat en büyüktür)
+                            all_prices = []
+                            for num_str in numbers:
+                                val = clean_price(num_str)
+                                if val > 0:
+                                    all_prices.append(val)
+                            if all_prices:
+                                # En büyük fiyatı al (taksit değil, ana fiyat)
+                                data["price"] = max(all_prices)
+                                break
+                
+                # Strateji 2: data-comp="Price" container
+                if data["price"] == 0:
+                    price_container = soup.find("p", {"data-comp": "Price"})
+                    if price_container:
+                        # Tüm span'ları tara, en büyük fiyatı al
+                        all_spans = price_container.find_all("span")
+                        max_price = 0
+                        for span in all_spans:
+                            text = span.get_text(strip=True)
+                            if "taksit" not in text.lower():
+                                val = clean_price(text)
+                                if val > max_price:
+                                    max_price = val
+                        if max_price > 0:
+                            data["price"] = max_price
+
+                # Strateji 3: Genel arama - en büyük fiyatı bul
+                if data["price"] == 0:
+                     # TL veya ₺ içeren tüm elemanları bul
+                     all_price_elements = soup.find_all(string=re.compile(r'\d+[.,]\d+'))
+                     max_price = 0
+                     for elem in all_price_elements:
+                         text = elem.strip()
+                         # Taksit ibaresi olmayan ve makul büyüklükte fiyatları kontrol et
+                         parent_text = elem.parent.get_text() if elem.parent else text
+                         if "taksit" not in parent_text.lower() and "x" not in text.lower():
+                             val = clean_price(text)
+                             # Mantıklı fiyat aralığı (10 TL - 100,000 TL arası)
+                             if 10 < val < 100000 and val > max_price:
+                                 max_price = val
+                     if max_price > 0:
+                         data["price"] = max_price
+
+
         else:
             print(f"UYARI: Desteklenmeyen site ({url})")
             return None
