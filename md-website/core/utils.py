@@ -343,7 +343,7 @@ def get_product_details(url):
                     normal_price_val = clean_price(normal_price_elem.get_text())
                     if normal_price_val > 0:
                         data["price"] = normal_price_val  # Normal fiyat (347,99) - TAKİP EDİLECEK ✅
-                        print(f"DEBUG: Trendyol Plus Normal Fiyat: {normal_price_val}")
+                        # print(f"DEBUG: Trendyol Plus Normal Fiyat: {normal_price_val}")
                 
                 # Plus fiyatını bul - "ty-plus-price-discounted-container" class'ından
                 plus_discounted_container = soup.find("div", class_="ty-plus-price-discounted-container")
@@ -352,7 +352,7 @@ def get_product_details(url):
                     plus_price_match = re.search(r'([0-9.,]+)\s*(?:TL|₺)', plus_price_text)
                     if plus_price_match:
                         plus_price_val = clean_price(plus_price_match.group(1))
-                        print(f"DEBUG: Trendyol Plus Fiyatı: {plus_price_val}")
+                        # print(f"DEBUG: Trendyol Plus Fiyatı: {plus_price_val}")
                         # Plus fiyatı ayrı alan olarak sakla (seller name'e eklemeyeceğiz)
                         if plus_price_val > 0 and plus_price_val < data["price"]:
                             data["plus_price"] = plus_price_val  # Ayrı alan - template'de kullanılacak
