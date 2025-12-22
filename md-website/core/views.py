@@ -117,6 +117,7 @@ def finance_dashboard(request):
         'balance': balance,
         # Navigasyon Verileri
         'selected_date': selected_date,
+        'selected_month_str': selected_date.strftime('%Y-%m'),  # String formatı
         'prev_month': prev_month,
         'next_month': next_month,
         'month_list': month_list,

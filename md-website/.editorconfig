@@ -1,0 +1,11 @@
+root = true
+
+[*.html]
+trim_trailing_whitespace = false
+insert_final_newline = false
+indent_style = space
+indent_size = 4
+
+[*.{py,js}]
+trim_trailing_whitespace = true
+insert_final_newline = true
