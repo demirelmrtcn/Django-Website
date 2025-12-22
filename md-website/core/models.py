@@ -55,6 +55,9 @@ class TrackedProduct(models.Model):
     # --- VARYANT ALANLARI (SEPHORA İÇİN) ---
     variant_sku = models.CharField(max_length=100, blank=True, null=True, verbose_name="Varyant SKU")
     variant_size = models.CharField(max_length=50, blank=True, null=True, verbose_name="Boyut/Varyant")
+    
+    # --- TRENDYOL PLUS FİYATI ---
+    plus_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Plus Fiyatı")
 
     def __str__(self):
         return self.product_name

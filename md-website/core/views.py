@@ -152,11 +152,6 @@ def price_tracking_dashboard(request):
             custom_name = form.cleaned_data['custom_name']
             email = form.cleaned_data['notification_email']  # Formdan maili al
 
-            # Trendyol kontrolü
-            if "trendyol" in url:
-                messages.error(request, "Trendyol şu an desteklenmemektedir.")
-                return redirect('price_tracking_dashboard')
-
             # DUPLICATE KONTROLÜ - Aynı URL ve aynı email varsa ekleme
             existing_product = TrackedProduct.objects.filter(
                 user=request.user,
@@ -185,7 +180,8 @@ def price_tracking_dashboard(request):
                     site_name=scraped_data['site'],
                     current_price=scraped_data['price'],
                     original_price=scraped_data.get('original_price', 0),
-                    seller_name=scraped_data['seller']
+                    seller_name=scraped_data['seller'],
+                    plus_price=scraped_data.get('plus_price', None)  # Trendyol Plus fiyatı
                 )
                 messages.success(request, "Ürün başarıyla eklendi!")
             else:

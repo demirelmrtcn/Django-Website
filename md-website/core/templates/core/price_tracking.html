@@ -83,13 +83,31 @@
                                     <small class="text-decoration-line-through text-muted" style="font-size: 0.8rem;">
                                         {{ product.original_price|intcomma }} ₺
                                     </small>
-                                    <span class="fw-bold text-danger fs-5 text-nowrap">
-                                        {{ product.current_price|intcomma }} ₺
-                                    </span>
+                                    <div>
+                                        <span class="fw-bold text-danger fs-5 text-nowrap">
+                                            {{ product.current_price|intcomma }} ₺
+                                        </span>
+                                        {% if product.plus_price %}
+                                        <div>
+                                            <small class="text-muted" style="font-size: 0.65rem;">
+                                                (Plus: {{ product.plus_price|intcomma }} ₺)
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                     {% else %}
-                                    <span class="fw-bold text-primary fs-5 text-nowrap">
-                                        {{ product.current_price|intcomma }} ₺
-                                    </span>
+                                    <div>
+                                        <span class="fw-bold text-primary fs-5 text-nowrap">
+                                            {{ product.current_price|intcomma }} ₺
+                                        </span>
+                                        {% if product.plus_price %}
+                                        <div>
+                                            <small class="text-muted" style="font-size: 0.65rem;">
+                                                (Plus: {{ product.plus_price|intcomma }} ₺)
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                     {% endif %}
                                 </div>
                             </td>
@@ -170,7 +188,8 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">Ürün Linki</label>
                             {{ form.url }}
-                            <div class="form-text">Amazon, Hepsiburada, Sephora, Zara linki yapıştırın.</div>
+                            <div class="form-text">Amazon, Hepsiburada, Sephora, Zara, Gratis, Trendyol linki
+                                yapıştırın.</div>
                         </div>
                     </div>
                     <div class="modal-footer">

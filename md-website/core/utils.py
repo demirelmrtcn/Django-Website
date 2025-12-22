@@ -253,6 +253,171 @@ def get_product_details(url):
             if price_elem:
                 data["price"] = clean_price(price_elem.get_text())
 
+
+        # --- GRATIS ---
+        elif "gratis" in url:
+            data["site"] = "Gratis"
+            data["seller"] = "Gratis"
+
+            # 1. BAŞLIK
+            h1 = soup.find("h1")
+            if not h1:
+                # Meta tag'den dene
+                meta_title = soup.find("meta", property="og:title")
+                if meta_title:
+                    data["title"] = meta_title.get("content", "Gratis Ürünü")
+                else:
+                    data["title"] = "Gratis Ürünü"
+            else:
+                data["title"] = h1.get_text(strip=True)
+
+            # 2. FİYATLAR - Gratis dual pricing sistemi
+            # div class="my-10 flex flex-col" altında iki fiyat var:
+            # - Normal fiyat (yüksek)
+            # - Gratis Kart fiyatı (indirimli, düşük)
+            
+            price_container = soup.find("div", class_=lambda x: x and ("my-10" in x and "flex" in x))
+            
+            if price_container:
+                # Tüm fiyatları bul
+                price_elements = price_container.find_all(string=re.compile(r'\d+[.,]\d+'))
+                prices = []
+                
+                for price_text in price_elements:
+                    price_val = clean_price(price_text)
+                    if price_val > 0:
+                        prices.append(price_val)
+                
+                if len(prices) >= 2:
+                    # İki fiyat var - büyük olan normal, küçük olan Gratis Kart
+                    prices.sort(reverse=True)  # Büyükten küçüğe sırala
+                    data["original_price"] = prices[0]  # Normal fiyat (yüksek)
+                    data["price"] = prices[1]           # Gratis Kart fiyatı (düşük) - BU TAKİP EDİLECEK
+                elif len(prices) == 1:
+                    # Tek fiyat var
+                    data["price"] = prices[0]
+            
+            # Alternatif: Eğer price container bulunamadıysa
+            if data["price"] == 0:
+                # Genel fiyat araması
+                price_divs = soup.find_all("div", class_=lambda x: x and "price" in x.lower())
+                for pdiv in price_divs:
+                    price_text = pdiv.get_text()
+                    price_val = clean_price(price_text)
+                    if price_val > 0:
+                        data["price"] = price_val
+                        break
+
+        # --- TRENDYOL ---
+        elif "trendyol" in url or "ty.gl" in url:
+            data["site"] = "Trendyol"
+            
+            # 1. BAŞLIK
+            h1 = soup.find("h1")
+            if not h1:
+                # Meta tag'den dene
+                meta_title = soup.find("meta", property="og:title")
+                if meta_title:
+                    title_content = meta_title.get("content", "Trendyol Ürünü")
+                    # " - Fiyatı, Yorumları" kısmını temizle
+                    data["title"] = title_content.split(" - ")[0] if " - " in title_content else title_content
+                else:
+                    data["title"] = "Trendyol Ürünü"
+            else:
+                data["title"] = h1.get_text(strip=True)
+
+            # 2. FİYAT - div class="price-wrapper" altında
+            price_wrapper = soup.find("div", class_="price-wrapper")
+            
+            # TRENDYOL PLUS KONTROLÜ
+            plus_price_content = soup.find("div", class_="ty-plus-price-content")
+            
+            if plus_price_content:
+                # Trendyol Plus ürünü - iki fiyat var
+                # Normal fiyat (347,99 ₺) - yüksek - TAKİP EDİLECEK
+                # Plus fiyatı (313,19 ₺) - düşük - sadece bilgi
+                
+                # Normal fiyatı bul - "ty-plus-price-original-price" class'ından
+                normal_price_elem = plus_price_content.find(class_=lambda x: x and "original-price" in x.lower())
+                if normal_price_elem:
+                    normal_price_val = clean_price(normal_price_elem.get_text())
+                    if normal_price_val > 0:
+                        data["price"] = normal_price_val  # Normal fiyat (347,99) - TAKİP EDİLECEK ✅
+                        print(f"DEBUG: Trendyol Plus Normal Fiyat: {normal_price_val}")
+                
+                # Plus fiyatını bul - "ty-plus-price-discounted-container" class'ından
+                plus_discounted_container = soup.find("div", class_="ty-plus-price-discounted-container")
+                if plus_discounted_container:
+                    plus_price_text = plus_discounted_container.get_text()
+                    plus_price_match = re.search(r'([0-9.,]+)\s*(?:TL|₺)', plus_price_text)
+                    if plus_price_match:
+                        plus_price_val = clean_price(plus_price_match.group(1))
+                        print(f"DEBUG: Trendyol Plus Fiyatı: {plus_price_val}")
+                        # Plus fiyatı ayrı alan olarak sakla (seller name'e eklemeyeceğiz)
+                        if plus_price_val > 0 and plus_price_val < data["price"]:
+                            data["plus_price"] = plus_price_val  # Ayrı alan - template'de kullanılacak
+                
+            elif price_wrapper:
+                # Normal Trendyol ürünü (Plus değil)
+                # İndirimli fiyat öncelikli (genelde daha küçük gösterilir)
+                discounted_price = price_wrapper.find(class_=lambda x: x and ("prc-dsc" in x or "discounted" in x.lower()))
+                regular_price = price_wrapper.find(class_=lambda x: x and ("prc-slg" in x or "selling" in x.lower()))
+                
+                if discounted_price:
+                    data["price"] = clean_price(discounted_price.get_text())
+                    # Normal fiyat varsa onu da kaydet
+                    if regular_price:
+                        data["original_price"] = clean_price(regular_price.get_text())
+                elif regular_price:
+                    data["price"] = clean_price(regular_price.get_text())
+                else:
+                    # Herhangi bir fiyat elemanı bul
+                    price_elements = price_wrapper.find_all(string=re.compile(r'\d+[.,]\d+'))
+                    for price_text in price_elements:
+                        price_val = clean_price(price_text)
+                        if price_val > 0:
+                            data["price"] = price_val
+                            break
+            
+            # Alternatif fiyat araması
+            if data["price"] == 0:
+                # class'ında "price" geçen tüm elemanları tara
+                price_elems = soup.find_all(class_=lambda x: x and "price" in x.lower())
+                for elem in price_elems:
+                    price_text = elem.get_text()
+                    if "tl" in price_text.lower() or "₺" in price_text:
+                        price_val = clean_price(price_text)
+                        if price_val > 0:
+                            data["price"] = price_val
+                            break
+            
+            # 3. SATICI BİLGİSİ
+            # XPath: //*[@id="envoy"]/div/div[1]/div[1]
+            # CSS: #envoy > div > div:first-child > div:first-child
+            envoy_section = soup.find(id="envoy")
+            
+            if envoy_section:
+                # "Bu ürün Bioworld tarafından gönderilecektir." metnini bul
+                text_content = envoy_section.get_text()
+                # "tarafından gönderilecektir" ile "Bu ürün" arasındaki kelime(leri) çek
+                # Satıcı adı birden fazla kelime olabilir: "Trend Alaçatı Stili"
+                seller_match = re.search(r'Bu ürün\s+(.+?)\s+tarafından gönderilecektir', text_content)
+                if seller_match:
+                    data["seller"] = seller_match.group(1).strip()  # "Bioworld" veya "Trend Alaçatı Stili"
+                else:
+                    data["seller"] = "Trendyol"
+            else:
+                # Alternatif: merchant/seller class'ı
+                seller_elem = soup.find(class_=lambda x: x and ("merchant" in x.lower() or "seller" in x.lower()))
+                if seller_elem:
+                    seller_text = seller_elem.get_text(strip=True)
+                    # Sadece ilk satırı/kelimeyi al (rating vb. bilgiler sonra gelir)
+                    seller_text = re.split(r'[\d.,]+', seller_text)[0].strip()
+                    seller_text = seller_text.split()[0] if seller_text.split() else seller_text
+                    data["seller"] = seller_text if seller_text else "Trendyol"
+                else:
+                    data["seller"] = "Trendyol"
+
         # --- SEPHORA ---
         elif "sephora" in url:
             data["site"] = "Sephora"
