@@ -332,25 +332,81 @@ def run_price_bot(request):
 
             for email, changes in email_queue.items():
                 subject = "🔔 Fiyat Takip Bildirimi"
-                message_body = "Merhaba,\n\nÜrünlerinizde fiyat değişikliği tespit edildi:\n\n"
+                
+                # --- Plain Text Body ---
+                message_body = "Merhaba,\n\nTakip listenizdeki bazı ürünlerde fiyat değişikliği oldu:\n\n"
+                
+                # --- HTML Body ---
+                html_body = f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #f9f9f9;">
+                    <h2 style="color: #333; text-align: center;">🔔 Fiyat Takip Bildirimi</h2>
+                    <p style="color: #555; font-size: 16px;">Merhaba,</p>
+                    <p style="color: #555; font-size: 16px;">Takip listenizdeki ürünlerde yeni fiyat hareketleri tespit ettik.</p>
+                """
+
                 has_content = False
 
                 if changes['dropped']:
                     has_content = True
-                    message_body += "⬇️ DÜŞENLER:\n"
+                    message_body += "⬇️ FİYATI DÜŞENLER:\n"
+                    html_body += """
+                    <div style="margin-top: 20px; background-color: #d4edda; padding: 15px; border-radius: 8px; border-left: 5px solid #28a745;">
+                        <h3 style="margin-top: 0; color: #155724;">⬇️ Fiyatı Düşen Ürünler</h3>
+                        <ul style="padding-left: 20px;">
+                    """
+                    
                     for item in changes['dropped']:
-                        message_body += f"- {item['name']}: {item['old']} -> {item['new']} TL\n{item['url']}\n\n"
+                        # Text format
+                        message_body += f"- {item['name']}\n  Eski: {item['old']} TL -> Yeni: {item['new']} TL\n  Link: {item['url']}\n\n"
+                        
+                        # HTML format
+                        html_body += f"""
+                        <li style="margin-bottom: 10px; color: #333;">
+                            <strong>{item['name']}</strong><br>
+                            <span style="text-decoration: line-through; color: #777;">{item['old']} TL</span> 
+                            <span style="font-weight: bold; color: #28a745;">&nbsp;➝&nbsp; {item['new']} TL</span><br>
+                            <a href="{item['url']}" style="display: inline-block; margin-top: 5px; color: #007bff; text-decoration: none; font-size: 14px;">👉 Ürüne Git</a>
+                        </li>
+                        """
+                    html_body += "</ul></div>"
 
                 if changes['increased']:
                     has_content = True
-                    message_body += "⬆️ ARTANLAR:\n"
+                    message_body += "⬆️ FİYATI ARTANLAR:\n"
+                    html_body += """
+                    <div style="margin-top: 20px; background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 5px solid #dc3545;">
+                        <h3 style="margin-top: 0; color: #721c24;">⬆️ Fiyatı Artan Ürünler</h3>
+                        <ul style="padding-left: 20px;">
+                    """
+
                     for item in changes['increased']:
-                        message_body += f"- {item['name']}: {item['old']} -> {item['new']} TL\n{item['url']}\n\n"
+                        # Text format
+                        message_body += f"- {item['name']}\n  Eski: {item['old']} TL -> Yeni: {item['new']} TL\n  Link: {item['url']}\n\n"
+                        
+                        # HTML format
+                        html_body += f"""
+                        <li style="margin-bottom: 10px; color: #333;">
+                            <strong>{item['name']}</strong><br>
+                            <span style="text-decoration: line-through; color: #777;">{item['old']} TL</span> 
+                            <span style="font-weight: bold; color: #dc3545;">&nbsp;➝&nbsp; {item['new']} TL</span><br>
+                            <a href="{item['url']}" style="display: inline-block; margin-top: 5px; color: #007bff; text-decoration: none; font-size: 14px;">👉 Ürüne Git</a>
+                        </li>
+                        """
+                    html_body += "</ul></div>"
+
+                # Footer
+                html_body += """
+                    <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #aaa;">
+                        <p>Bu mail otomatik olarak gönderilmiştir. <br> Keyifli alışverişler!</p>
+                    </div>
+                </div>
+                """
 
                 if has_content and connection:
                     try:
                         msg = EmailMultiAlternatives(subject, message_body, settings.EMAIL_HOST_USER, [email],
                                                      connection=connection)
+                        msg.attach_alternative(html_body, "text/html")
                         msg.send(fail_silently=False)
                     except Exception as e:
                         print(f"Mail hatası: {e}")
@@ -365,7 +421,3 @@ def run_price_bot(request):
         }) + "\n"
 
     return StreamingHttpResponse(event_stream(), content_type='application/x-ndjson')
-
-
-
-
