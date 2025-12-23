@@ -543,6 +543,56 @@ def get_product_details(url):
                          data["price"] = max_price
 
 
+        # --- MAC COSMETICS ---
+        elif "maccosmetics" in url:
+            data["site"] = "MAC"
+            
+            # 1. JSON-LD Structured Data (En Güvenilir Yöntem)
+            json_ld = get_json_ld(soup)
+            if json_ld:
+                # Başlık
+                data["title"] = json_ld.get("name", "MAC Ürünü")
+                
+                # Fiyat (offers içinde)
+                if "offers" in json_ld:
+                    offers = json_ld["offers"]
+                    # offers bazen liste, bazen tek obje olabilir
+                    if isinstance(offers, list):
+                        offer = offers[0] if offers else {}
+                    else:
+                        offer = offers
+                    
+                    if "price" in offer:
+                        price_value = offer["price"]
+                        # Fiyat string veya number olabilir
+                        data["price"] = clean_price(str(price_value))
+                
+                # Marka
+                if "brand" in json_ld:
+                    brand = json_ld["brand"]
+                    if isinstance(brand, dict):
+                        data["seller"] = brand.get("name", "M·A·C")
+                    else:
+                        data["seller"] = "M·A·C"
+            
+            # 2. Fallback: CSS Selectors (JSON-LD yoksa)
+            if data["price"] == 0.0:
+                # Fiyat için [data-testid="price"]
+                price_elem = soup.find(attrs={"data-testid": "price"})
+                if price_elem:
+                    data["price"] = clean_price(price_elem.get_text())
+            
+            if not data["title"] or data["title"] == "MAC Ürünü":
+                # Başlık için h1
+                h1 = soup.find("h1")
+                if h1:
+                    data["title"] = h1.get_text(strip=True)
+            
+            # Marka bilgisi yoksa varsayılan
+            if data["seller"] == "-":
+                data["seller"] = "M·A·C"
+
+
         else:
             print(f"UYARI: Desteklenmeyen site ({url})")
             return None
