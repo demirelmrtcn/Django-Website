@@ -545,7 +545,7 @@ def get_product_details(url):
 
         # --- MAC COSMETICS ---
         elif "maccosmetics" in url:
-            data["site"] = "MAC"
+            data["site"] = "MAC Cosmetics"
             
             # 1. JSON-LD Structured Data (En Güvenilir Yöntem)
             json_ld = get_json_ld(soup)
@@ -591,6 +591,111 @@ def get_product_details(url):
             # Marka bilgisi yoksa varsayılan
             if data["seller"] == "-":
                 data["seller"] = "M·A·C"
+
+
+        # --- KIKO MILANO ---
+        elif "kikomilano" in url:
+            data["site"] = "Kiko Milano"
+            
+            # 1. JSON-LD Structured Data (En Güvenilir Yöntem)
+            json_ld = get_json_ld(soup)
+            if json_ld:
+                # Başlık
+                data["title"] = json_ld.get("name", "Kiko Ürünü")
+                
+                # Fiyat (offers içinde)
+                if "offers" in json_ld:
+                    offers = json_ld["offers"]
+                    # offers bazen liste, bazen tek obje olabilir
+                    if isinstance(offers, list):
+                        offer = offers[0] if offers else {}
+                    else:
+                        offer = offers
+                    
+                    if "price" in offer:
+                        price_value = offer["price"]
+                        # Fiyat string veya number olabilir
+                        data["price"] = clean_price(str(price_value))
+                
+                # Marka
+                if "brand" in json_ld:
+                    brand = json_ld["brand"]
+                    if isinstance(brand, dict):
+                        data["seller"] = brand.get("name", "Kiko Milano")
+                    else:
+                        data["seller"] = "Kiko Milano"
+            
+            # 2. Fallback: CSS Selectors (JSON-LD yoksa)
+            if data["price"] == 0.0:
+                # Fiyat için pz-price elementi
+                price_elem = soup.find("pz-price")
+                if price_elem:
+                    data["price"] = clean_price(price_elem.get_text())
+            
+            if not data["title"] or data["title"] == "Kiko Ürünü":
+                # Başlık için h1.product-info-left__title
+                h1 = soup.find("h1", class_="product-info-left__title")
+                if not h1:
+                    h1 = soup.find("h1")
+                if h1:
+                    data["title"] = h1.get_text(strip=True)
+            
+            # Marka bilgisi yoksa varsayılan
+            if data["seller"] == "-":
+                data["seller"] = "Kiko Milano"
+
+
+        # --- YVES ROCHER ---
+        elif "yvesrocher" in url:
+            data["site"] = "Yves Rocher"
+            
+            # 1. JSON-LD Structured Data (En Güvenilir Yöntem)
+            json_ld = get_json_ld(soup)
+            if json_ld:
+                # Başlık
+                data["title"] = json_ld.get("name", "Yves Rocher Ürünü")
+                
+                # Fiyat (offers içinde)
+                if "offers" in json_ld:
+                    offers = json_ld["offers"]
+                    # offers bazen liste, bazen tek obje olabilir
+                    if isinstance(offers, list):
+                        offer = offers[0] if offers else {}
+                    else:
+                        offer = offers
+                    
+                    if "price" in offer:
+                        price_value = offer["price"]
+                        # Fiyat string veya number olabilir
+                        data["price"] = clean_price(str(price_value))
+                
+                # Marka
+                if "brand" in json_ld:
+                    brand = json_ld["brand"]
+                    if isinstance(brand, dict):
+                        data["seller"] = brand.get("name", "Yves Rocher")
+                    else:
+                        data["seller"] = "Yves Rocher"
+            
+            # 2. Fallback: CSS Selectors (JSON-LD yoksa)
+            if data["price"] == 0.0:
+                # Fiyat için span.bold elementi
+                price_elem = soup.find("span", class_="bold")
+                if not price_elem:
+                    # Alternatif: text_size_20 class'ı
+                    price_elem = soup.find("span", class_=lambda x: x and "text_size_20" in x)
+                if price_elem:
+                    data["price"] = clean_price(price_elem.get_text())
+            
+            if not data["title"] or data["title"] == "Yves Rocher Ürünü":
+                # Başlık için h1
+                h1 = soup.find("h1")
+                if h1:
+                    data["title"] = h1.get_text(strip=True)
+            
+            # Marka bilgisi yoksa varsayılan
+            if data["seller"] == "-":
+                data["seller"] = "Yves Rocher"
 
 
         else:
