@@ -148,52 +148,6 @@
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
         }
 
-        .divider {
-            text-align: center;
-            margin: 25px 0;
-            position: relative;
-        }
-
-        .divider::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            width: 100%;
-            height: 1px;
-            background: #e2e8f0;
-        }
-
-        .divider span {
-            background: white;
-            padding: 0 15px;
-            color: #a0aec0;
-            position: relative;
-            z-index: 1;
-            font-size: 0.9rem;
-        }
-
-        .btn-register {
-            background: white;
-            border: 2px solid #667eea;
-            color: #667eea;
-            padding: 12px;
-            border-radius: 12px;
-            font-weight: 600;
-            width: 100%;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .btn-register:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
         .forgot-password {
             text-align: center;
             margin-top: 15px;
@@ -257,14 +211,6 @@
                 <div class="forgot-password">
                     <a href="#"><i class="fas fa-question-circle me-1"></i>Hesabınızı mı unuttunuz?</a>
                 </div>
-
-                <div class="divider">
-                    <span>veya</span>
-                </div>
-
-                <a href="{% url 'register' %}" class="btn btn-register">
-                    <i class="fas fa-user-plus me-2"></i>Kayıt Ol
-                </a>
             </div>
         </div>
 
