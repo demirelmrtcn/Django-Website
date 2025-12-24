@@ -438,11 +438,16 @@ def get_product_details(url):
             else:
                 data["title"] = h1.get_text(strip=True)
 
-            # 2. FİYAT - div class="price-wrapper" altında
-            price_wrapper = soup.find("div", class_="price-wrapper")
+            # 2. FİYAT - Ana ürün container'ı içinden al (diğer satıcıları karıştırma)
+            # Ana container: product-details-product-details-container veya product-detail-container
+            main_container = soup.find("div", class_="product-details-product-details-container")
+            if not main_container:
+                main_container = soup.find("div", class_="product-detail-container")
+            if not main_container:
+                main_container = soup  # Fallback to whole page
             
-            # TRENDYOL PLUS KONTROLÜ
-            plus_price_content = soup.find("div", class_="ty-plus-price-content")
+            # TRENDYOL PLUS KONTROLÜ - SADECE ANA CONTAINER İÇİNDE
+            plus_price_content = main_container.find("div", class_="ty-plus-price-content")
             
             if plus_price_content:
                 # Trendyol Plus ürünü - iki fiyat var
@@ -454,54 +459,50 @@ def get_product_details(url):
                 if normal_price_elem:
                     normal_price_val = clean_price(normal_price_elem.get_text())
                     if normal_price_val > 0:
-                        data["price"] = normal_price_val  # Normal fiyat (347,99) - TAKİP EDİLECEK ✅
-                        # print(f"DEBUG: Trendyol Plus Normal Fiyat: {normal_price_val}")
+                        data["price"] = normal_price_val  # Normal fiyat - TAKİP EDİLECEK ✅
                 
                 # Plus fiyatını bul - "ty-plus-price-discounted-container" class'ından
-                plus_discounted_container = soup.find("div", class_="ty-plus-price-discounted-container")
+                plus_discounted_container = plus_price_content.find(class_=lambda x: x and "discounted" in x.lower())
                 if plus_discounted_container:
-                    plus_price_text = plus_discounted_container.get_text()
-                    plus_price_match = re.search(r'([0-9.,]+)\s*(?:TL|₺)', plus_price_text)
-                    if plus_price_match:
-                        plus_price_val = clean_price(plus_price_match.group(1))
-                        # print(f"DEBUG: Trendyol Plus Fiyatı: {plus_price_val}")
-                        # Plus fiyatı ayrı alan olarak sakla (seller name'e eklemeyeceğiz)
-                        if plus_price_val > 0 and plus_price_val < data["price"]:
-                            data["plus_price"] = plus_price_val  # Ayrı alan - template'de kullanılacak
-                
-            elif price_wrapper:
-                # Normal Trendyol ürünü (Plus değil)
-                # İndirimli fiyat öncelikli (genelde daha küçük gösterilir)
-                discounted_price = price_wrapper.find(class_=lambda x: x and ("prc-dsc" in x or "discounted" in x.lower()))
-                regular_price = price_wrapper.find(class_=lambda x: x and ("prc-slg" in x or "selling" in x.lower()))
-                
-                if discounted_price:
-                    data["price"] = clean_price(discounted_price.get_text())
-                    # Normal fiyat varsa onu da kaydet
-                    if regular_price:
-                        data["original_price"] = clean_price(regular_price.get_text())
-                elif regular_price:
-                    data["price"] = clean_price(regular_price.get_text())
-                else:
-                    # Herhangi bir fiyat elemanı bul
-                    price_elements = price_wrapper.find_all(string=re.compile(r'\d+[.,]\d+'))
-                    for price_text in price_elements:
-                        price_val = clean_price(price_text)
-                        if price_val > 0:
-                            data["price"] = price_val
-                            break
+                    plus_price_val = clean_price(plus_discounted_container.get_text())
+                    # Plus fiyatı ayrı alan olarak sakla
+                    if plus_price_val > 0 and (data["price"] == 0 or plus_price_val < data["price"]):
+                        data["plus_price"] = plus_price_val
             
-            # Alternatif fiyat araması
+            # Plus ürünü değilse veya fiyat bulunamadıysa
             if data["price"] == 0:
-                # class'ında "price" geçen tüm elemanları tara
-                price_elems = soup.find_all(class_=lambda x: x and "price" in x.lower())
-                for elem in price_elems:
-                    price_text = elem.get_text()
-                    if "tl" in price_text.lower() or "₺" in price_text:
-                        price_val = clean_price(price_text)
-                        if price_val > 0:
-                            data["price"] = price_val
-                            break
+                # Price wrapper içinden ara
+                price_wrapper = main_container.find("div", class_="price-wrapper")
+                if not price_wrapper:
+                    price_wrapper = main_container.find("div", class_="product-price-container")
+                
+                if price_wrapper:
+                    # İndirimli fiyat öncelikli
+                    discounted_price = price_wrapper.find(class_=lambda x: x and ("prc-dsc" in str(x) or "discounted" in str(x).lower()))
+                    selling_price = price_wrapper.find(class_=lambda x: x and ("prc-slg" in str(x) or "selling" in str(x).lower()))
+                    original_price = price_wrapper.find(class_=lambda x: x and ("prc-org" in str(x) or "old-price" in str(x).lower()))
+                    
+                    if discounted_price:
+                        data["price"] = clean_price(discounted_price.get_text())
+                        if original_price:
+                            data["original_price"] = clean_price(original_price.get_text())
+                    elif selling_price:
+                        data["price"] = clean_price(selling_price.get_text())
+                    
+                    # Hala fiyat yoksa herhangi bir fiyat elemanı bul
+                    if data["price"] == 0:
+                        price_elements = price_wrapper.find_all(string=re.compile(r'\d+[.,]\d+'))
+                        for price_text in price_elements:
+                            price_val = clean_price(str(price_text))
+                            if price_val > 0:
+                                data["price"] = price_val
+                                break
+            
+            # Son alternatif: discounted class'ı ile direkt ara
+            if data["price"] == 0:
+                discounted_elem = main_container.find("span", class_="discounted")
+                if discounted_elem:
+                    data["price"] = clean_price(discounted_elem.get_text())
             
             # 3. SATICI BİLGİSİ
             # XPath: //*[@id="envoy"]/div/div[1]/div[1]

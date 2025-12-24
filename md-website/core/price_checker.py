@@ -62,9 +62,13 @@ def check_all_prices():
                     
                     if new_data.get('original_price'):
                         product.original_price = Decimal(str(new_data['original_price']))
+                    else:
+                        product.original_price = Decimal('0')  # Temizle
                     
                     if new_data.get('plus_price'):
                         product.plus_price = Decimal(str(new_data['plus_price']))
+                    else:
+                        product.plus_price = None  # Plus fiyat yoksa temizle
                     
                     if status != 'stable':
                         product.previous_price = old_price
