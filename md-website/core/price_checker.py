@@ -106,7 +106,7 @@ def check_all_prices():
             connection = None
         
         for email, changes in email_queue.items():
-            subject = "🔔 Fiyat Takip Bildirimi"
+            subject = "🔔 Fiyat Takibi Bildirimi"
             
             # Plain text
             message_body = "Merhaba,\\n\\nTakip listenizdeki bazı ürünlerde fiyat değişikliği oldu:\\n\\n"
@@ -115,7 +115,7 @@ def check_all_prices():
             html_body = f"""
             <html>
             <body style="font-family: Arial, sans-serif; padding: 20px;">
-                <h2 style="color: #333;">🔔 Fiyat Takip Bildirimi</h2>
+                <h2 style="color: #333;">🔔 Fiyat Takibi Bildirimi</h2>
                 <p>Merhaba,</p>
                 <p>Takip listenizdeki bazı ürünlerde fiyat değişikliği oldu:</p>
             """

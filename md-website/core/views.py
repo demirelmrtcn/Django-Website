@@ -342,7 +342,7 @@ def run_price_bot(request):
                 connection = None
 
             for email, changes in email_queue.items():
-                subject = "🔔 Fiyat Takip Bildirimi"
+                subject = "🔔 Fiyat Takibi Bildirimi"
                 
                 # --- Plain Text Body ---
                 message_body = "Merhaba,\n\nTakip listenizdeki bazı ürünlerde fiyat değişikliği oldu:\n\n"
@@ -350,7 +350,7 @@ def run_price_bot(request):
                 # --- HTML Body ---
                 html_body = f"""
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #f9f9f9;">
-                    <h2 style="color: #333; text-align: center;">🔔 Fiyat Takip Bildirimi</h2>
+                    <h2 style="color: #333; text-align: center;">🔔 Fiyat Takibi Bildirimi</h2>
                     <p style="color: #555; font-size: 16px;">Merhaba,</p>
                     <p style="color: #555; font-size: 16px;">Takip listenizdeki ürünlerde yeni fiyat hareketleri tespit ettik.</p>
                 """

@@ -5,6 +5,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
     <title>Fiyat Takip Sistemi</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -247,12 +249,17 @@
                 </table>
             </div>
         </div>
-        <div class="card shadow-sm mt-5 mb-5">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Fiyat Değişim Grafiği</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="priceHistoryChart" style="max-height: 400px;"></canvas>
+        <div class="row">
+            <div class="col-12">
+                <div class="chart-container">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-chart-line text-success"></i> Fiyat Değişim Grafiği</h5>
+                        <small class="text-muted">Grafik üzerinde gezinerek detayları görebilirsiniz</small>
+                    </div>
+                    <div class="card-body" style="height: 600px; padding: 20px;">
+                        <canvas id="priceHistoryChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -332,15 +339,19 @@
                 'rgba(255, 193, 7, 0.2)'   // Sarı
             ];
             // Veri seti ayarlarını iyileştir
+            // Ürün adlarını kısalt (legend için)
             chartData.datasets.forEach((dataset, index) => {
-                dataset.pointRadius = 6;           // Nokta büyüklüğü (Daha belirgin)
-                dataset.pointHoverRadius = 9;      // Üzerine gelince büyüklük
-                dataset.pointBackgroundColor = dataset.borderColor; // Nokta içi dolu olsun
-                dataset.borderWidth = 3;           // Çizgi kalınlığı
-                dataset.tension = 0.3;             // Çizgileri yumuşat
-                dataset.fill = true;               // Çizginin altını doldur
-                // Alt dolgu rengi (Sırayla renk ata)
-                dataset.backgroundColor = gradientColors[index % gradientColors.length];
+                // Uzun ürün adlarını kısalt
+                if (dataset.label && dataset.label.length > 30) {
+                    dataset.originalLabel = dataset.label; // Tam adı sakla
+                    dataset.label = dataset.label.substring(0, 27) + '...';
+                }
+                dataset.pointRadius = 5;           // Nokta büyüklüğü
+                dataset.pointHoverRadius = 8;      // Üzerine gelince büyüklük
+                dataset.pointBackgroundColor = dataset.borderColor;
+                dataset.borderWidth = 2.5;         // Çizgi kalınlığı
+                dataset.tension = 0.4;             // Çizgileri yumuşat
+                dataset.fill = false;              // Alt dolgu kapalı (daha temiz)
             });
             new Chart(ctx, {
                 type: 'line',
@@ -357,22 +368,45 @@
                     },
                     plugins: {
                         legend: {
-                            position: 'top',
-                            align: 'end', // Lejantı sağa yasla
+                            position: 'bottom',
+                            align: 'start',
+                            maxHeight: 120, // Maximum legend yüksekliği
                             labels: {
                                 usePointStyle: true,
-                                boxWidth: 10,
-                                font: { size: 12, weight: 'bold' }
+                                boxWidth: 8,
+                                padding: 15,
+                                font: { size: 11 },
+                                // Legend'ı 2 satıra böl
+                                generateLabels: function (chart) {
+                                    const labels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                                    // Her label için tam adı tooltip olarak ekle
+                                    labels.forEach((label, i) => {
+                                        const dataset = chart.data.datasets[i];
+                                        if (dataset.originalLabel) {
+                                            label.text = dataset.label; // Kısaltılmış
+                                        }
+                                    });
+                                    return labels;
+                                }
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(33, 37, 41, 0.9)', // Koyu arkaplan
-                            titleColor: '#ffc107', // Başlık sarı
-                            bodyFont: { size: 14 },
-                            padding: 12,
+                            backgroundColor: 'rgba(33, 37, 41, 0.95)',
+                            titleColor: '#ffc107',
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            bodyColor: '#fff',
+                            padding: 15,
+                            cornerRadius: 8,
+                            displayColors: true,
                             callbacks: {
+                                title: function (context) {
+                                    return 'Tarih: ' + context[0].label;
+                                },
                                 label: function (context) {
-                                    let label = context.dataset.label || '';
+                                    const dataset = context.dataset;
+                                    // Tam ürün adını göster
+                                    let label = dataset.originalLabel || dataset.label || '';
                                     if (label) {
                                         label += ': ';
                                     }
@@ -395,14 +429,20 @@
                             }
                         },
                         y: {
-                            beginAtZero: false, // Değişimi daha net görmek için 0'dan başlatma
+                            beginAtZero: false,
                             grid: {
-                                color: 'rgba(0, 0, 0, 0.05)', // Çok hafif yatay çizgiler
-                                borderDash: [5, 5]
+                                color: 'rgba(0, 0, 0, 0.06)',
+                                borderDash: [3, 3]
                             },
                             ticks: {
+                                padding: 10,
+                                font: { size: 11 },
                                 callback: function (value) {
-                                    return value.toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' ₺';
+                                    // Binlik ayraç ile formatla
+                                    if (value >= 1000) {
+                                        return (value / 1000).toFixed(1) + 'K ₺';
+                                    }
+                                    return value.toLocaleString('tr-TR') + ' ₺';
                                 }
                             }
                         }
