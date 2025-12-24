@@ -26,4 +26,14 @@ urlpatterns = [
     path('fiyat-takip/sil/<int:id>/', views.delete_product, name='delete_product'),
 
     path('fiyat-takip/bot-baslat/', views.run_price_bot, name='run_price_bot'),
+
+    # --- ORGANIZER (Notes & Calendar) ---
+    path('organizer/', views.organizer_dashboard, name='organizer_dashboard'),
+    path('organizer/note/create/', views.create_note, name='create_note'),
+    path('organizer/note/<int:id>/update/', views.update_note, name='update_note'),
+    path('organizer/note/<int:id>/', views.get_note, name='get_note'),
+    path('organizer/note/<int:id>/delete/', views.delete_note, name='delete_note'),
+    path('organizer/event/create/', views.create_event, name='create_event'),
+    path('organizer/event/<int:id>/delete/', views.delete_event, name='delete_event'),
+    path('organizer/events/', views.get_events, name='get_events'),
 ]

@@ -432,3 +432,275 @@ def run_price_bot(request):
         }) + "\n"
 
     return StreamingHttpResponse(event_stream(), content_type='application/x-ndjson')
+
+
+# ============================================================
+# ORGANIZER - NOTES & CALENDAR VIEWS
+# ============================================================
+
+from .models import Note, CalendarEvent
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+
+@login_required
+def organizer_dashboard(request):
+    """Ana organizer sayfası - Notlar ve Takvim"""
+    notes = Note.objects.filter(user=request.user)
+    events = CalendarEvent.objects.filter(user=request.user)
+    
+    context = {
+        'notes': notes,
+        'events': events,
+    }
+    return render(request, 'core/organizer.html', context)
+
+
+@login_required
+@require_POST
+def create_note(request):
+    """Yeni not oluştur (AJAX)"""
+    try:
+        data = json.loads(request.body)
+        note = Note.objects.create(
+            user=request.user,
+            title=data.get('title', 'Yeni Not'),
+            content=data.get('content', ''),
+            color=data.get('color', '#ffffff')
+        )
+        return JsonResponse({
+            'success': True,
+            'note': {
+                'id': note.id,
+                'title': note.title,
+                'content': note.content,
+                'color': note.color,
+                'updated_at': note.updated_at.strftime('%d.%m.%Y %H:%M'),
+                'is_pinned': note.is_pinned
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def update_note(request, id):
+    """Not güncelle (AJAX)"""
+    try:
+        note = get_object_or_404(Note, id=id, user=request.user)
+        data = json.loads(request.body)
+        
+        if 'title' in data:
+            note.title = data['title']
+        if 'content' in data:
+            note.content = data['content']
+        if 'color' in data:
+            note.color = data['color']
+        if 'is_pinned' in data:
+            note.is_pinned = data['is_pinned']
+        
+        note.save()
+        
+        return JsonResponse({
+            'success': True,
+            'note': {
+                'id': note.id,
+                'title': note.title,
+                'content': note.content,
+                'color': note.color,
+                'updated_at': note.updated_at.strftime('%d.%m.%Y %H:%M'),
+                'is_pinned': note.is_pinned
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_GET
+def get_note(request, id):
+    """Tek not içeriğini getir (AJAX)"""
+    try:
+        note = get_object_or_404(Note, id=id, user=request.user)
+        return JsonResponse({
+            'success': True,
+            'note': {
+                'id': note.id,
+                'title': note.title,
+                'content': note.content,
+                'color': note.color,
+                'updated_at': note.updated_at.strftime('%d.%m.%Y %H:%M'),
+                'is_pinned': note.is_pinned
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+
+@login_required
+@require_POST
+def delete_note(request, id):
+    """Not sil"""
+    try:
+        note = get_object_or_404(Note, id=id, user=request.user)
+        note.delete()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def create_event(request):
+    """Takvim etkinliği oluştur (AJAX)"""
+    try:
+        data = json.loads(request.body)
+        
+        # Debug için yazdır
+        print(f"DEBUG create_event data: {data}")
+        
+        # end_date boş string ise None yap
+        end_date = data.get('end_date')
+        if end_date == '' or end_date is None:
+            end_date = None
+        
+        # start_date kontrolü
+        start_date = data.get('start_date')
+        if not start_date:
+            return JsonResponse({'success': False, 'error': 'Başlangıç tarihi gerekli'}, status=400)
+        
+        event = CalendarEvent.objects.create(
+            user=request.user,
+            title=data.get('title', 'Yeni Etkinlik'),
+            description=data.get('description', ''),
+            start_date=start_date,
+            end_date=end_date,
+            event_type=data.get('event_type', 'event'),
+            color=data.get('color', '#667eea'),
+            all_day=data.get('all_day', True),
+            is_recurring=data.get('is_recurring', False)
+        )
+        
+        print(f"DEBUG created event: {event.id} - {event.title}")
+        
+        return JsonResponse({
+            'success': True,
+            'event': {
+                'id': event.id,
+                'title': event.title,
+                'start': start_date,  # Zaten string formatında
+                'end': end_date,  # Zaten string veya None
+                'color': event.color,
+                'allDay': event.all_day,
+                'is_recurring': event.is_recurring
+            }
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"ERROR create_event: {e}")
+        print(traceback.format_exc())
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+
+
+@login_required
+@require_POST
+def delete_event(request, id):
+    """Etkinlik sil"""
+    try:
+        event = get_object_or_404(CalendarEvent, id=id, user=request.user)
+        event.delete()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_GET
+def get_events(request):
+    """Takvim etkinliklerini JSON olarak getir (FullCalendar için)"""
+    from datetime import date, datetime
+    
+    events = CalendarEvent.objects.filter(user=request.user)
+    
+    # FullCalendar tarih aralığını al ve parse et
+    start_param = request.GET.get('start', '')
+    end_param = request.GET.get('end', '')
+    
+    # Tarih aralığını parse et (örn: 2025-11-30T00:00:00+03:00)
+    try:
+        if start_param:
+            start_date = datetime.fromisoformat(start_param.replace('Z', '+00:00')).date()
+        else:
+            start_date = date.today().replace(day=1)
+        
+        if end_param:
+            end_date = datetime.fromisoformat(end_param.replace('Z', '+00:00')).date()
+        else:
+            end_date = date.today().replace(day=28) + timedelta(days=35)
+    except:
+        start_date = date.today().replace(day=1)
+        end_date = date.today().replace(day=28) + timedelta(days=35)
+    
+    # İstenen yılları hesapla
+    years_in_range = set()
+    current = start_date
+    while current <= end_date:
+        years_in_range.add(current.year)
+        current = current.replace(year=current.year + 1) if current.month == 1 else current.replace(month=current.month + 1 if current.month < 12 else 1, year=current.year if current.month < 12 else current.year + 1)
+    
+    events_list = []
+    for event in events:
+        if event.is_recurring:
+            # Tekrarlayan etkinlik: Sadece görüntülenen yıllar için
+            original_month = event.start_date.month
+            original_day = event.start_date.day
+            
+            for year in years_in_range:
+                try:
+                    recurring_date = date(year, original_month, original_day)
+                    # Sadece aralık içindeyse ekle
+                    if start_date <= recurring_date <= end_date:
+                        events_list.append({
+                            'id': f"{event.id}_{year}",
+                            'title': f"🔄 {event.title}",
+                            'start': recurring_date.isoformat(),
+                            'end': None,
+                            'color': event.color,
+                            'allDay': event.all_day,
+                            'extendedProps': {
+                                'description': event.description,
+                                'event_type': event.event_type,
+                                'is_recurring': True,
+                                'original_id': event.id
+                            }
+                        })
+                except ValueError:
+                    pass
+        else:
+            # Normal etkinlik - sadece aralık içindeyse
+            event_date = event.start_date
+            if start_date <= event_date <= end_date:
+                events_list.append({
+                    'id': event.id,
+                    'title': event.title,
+                    'start': event.start_date.isoformat(),
+                    'end': event.end_date.isoformat() if event.end_date else None,
+                    'color': event.color,
+                    'allDay': event.all_day,
+                    'extendedProps': {
+                        'description': event.description,
+                        'event_type': event.event_type,
+                        'is_recurring': False
+                    }
+                })
+    
+    return JsonResponse(events_list, safe=False)
+
+
