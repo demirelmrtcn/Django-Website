@@ -37,63 +37,79 @@ def check_all_prices():
             print(f"      ⚠️ Hata: {e}")
             new_data = None
         
-        if new_data and new_data['price'] > 0:
-            new_price = Decimal(str(new_data['price']))
-            old_price = product.current_price
+        if new_data:
+            # Stok durumu kontrolü
+            is_in_stock = new_data.get('is_in_stock', True)
             
-            current_now = timezone.now()
-            
-            status = 'stable'
-            if new_price < old_price:
-                status = 'dropped'
-            elif new_price > old_price:
-                status = 'increased'
-            
-            with transaction.atomic():
-                # 1. ÜRÜN GÜNCELLE
-                product.last_status = status
-                product.current_price = new_price
-                product.last_checked = current_now
+            if new_data['price'] > 0:
+                new_price = Decimal(str(new_data['price']))
+                old_price = product.current_price
                 
-                if new_data.get('original_price'):
-                    product.original_price = Decimal(str(new_data['original_price']))
+                current_now = timezone.now()
                 
-                if new_data.get('plus_price'):
-                    product.plus_price = Decimal(str(new_data['plus_price']))
+                status = 'stable'
+                if new_price < old_price:
+                    status = 'dropped'
+                elif new_price > old_price:
+                    status = 'increased'
                 
-                if status != 'stable':
-                    product.previous_price = old_price
+                with transaction.atomic():
+                    # 1. ÜRÜN GÜNCELLE
+                    product.last_status = status
+                    product.current_price = new_price
+                    product.last_checked = current_now
+                    product.is_in_stock = is_in_stock
+                    
+                    if new_data.get('original_price'):
+                        product.original_price = Decimal(str(new_data['original_price']))
+                    
+                    if new_data.get('plus_price'):
+                        product.plus_price = Decimal(str(new_data['plus_price']))
+                    
+                    if status != 'stable':
+                        product.previous_price = old_price
+                    
+                    product.save()
+                    
+                    # 2. TARİHÇEYE KAYDET
+                    if status != 'stable' or not product.history.exists():
+                        PriceHistory.objects.create(
+                            product=product,
+                            price=new_price,
+                            date=current_now
+                        )
                 
-                product.save()
+                updated_count += 1
                 
-                # 2. TARİHÇEYE KAYDET
-                if status != 'stable' or not product.history.exists():
-                    PriceHistory.objects.create(
-                        product=product,
-                        price=new_price,
-                        date=current_now
-                    )
-            
-            updated_count += 1
-            
-            if status == 'dropped':
-                print(f"      ✅ Fiyat düştü: {old_price} → {new_price} ₺")
-            elif status == 'increased':
-                print(f"      ⬆️ Fiyat yükseldi: {old_price} → {new_price} ₺")
+                if not is_in_stock:
+                    print(f"      ⚠️ STOKTA YOK (Son fiyat: {new_price} ₺)")
+                elif status == 'dropped':
+                    print(f"      ✅ Fiyat düştü: {old_price} → {new_price} ₺")
+                elif status == 'increased':
+                    print(f"      ⬆️ Fiyat yükseldi: {old_price} → {new_price} ₺")
+                else:
+                    print(f"      📊 Aynı: {new_price} ₺")
+                
+                # Mail kuyruğu
+                if status in ['dropped', 'increased'] and product.notification_email:
+                    email = product.notification_email
+                    if email not in email_queue:
+                        email_queue[email] = {'dropped': [], 'increased': []}
+                    email_queue[email][status].append({
+                        'name': product.product_name,
+                        'url': product.url,
+                        'old': old_price,
+                        'new': new_price
+                    })
             else:
-                print(f"      📊 Aynı: {new_price} ₺")
-            
-            # Mail kuyruğu
-            if status in ['dropped', 'increased'] and product.notification_email:
-                email = product.notification_email
-                if email not in email_queue:
-                    email_queue[email] = {'dropped': [], 'increased': []}
-                email_queue[email][status].append({
-                    'name': product.product_name,
-                    'url': product.url,
-                    'old': old_price,
-                    'new': new_price
-                })
+                # Fiyat 0 ama stok durumu değişmiş olabilir (ürün stoktan kalkmış)
+                if not is_in_stock:
+                    with transaction.atomic():
+                        product.is_in_stock = False
+                        product.last_checked = timezone.now()
+                        product.save()
+                    updated_count += 1
+                    print(f"      ⚠️ STOKTA YOK (Fiyat alınamadı)")
     
     # --- MAİL GÖNDERİMİ ---
     if email_queue:

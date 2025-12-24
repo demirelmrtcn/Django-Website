@@ -74,6 +74,118 @@ def get_json_ld(soup):
     return None
 
 
+def check_stock_status(soup, json_ld=None, url=""):
+    """
+    Check if a product is in stock based on various indicators.
+    Returns True if in stock, False if out of stock.
+    Works for all supported e-commerce sites with site-specific logic.
+    """
+    page_text = soup.get_text().lower()
+    
+    # ========================
+    # SITE-SPECIFIC CHECKS FIRST (Most reliable)
+    # ========================
+    
+    # --- GRATIS: "Gelince Haber Ver" button = OUT OF STOCK ---
+    # Gratis JSON-LD reports InStock incorrectly, so check button text
+    if "gratis.com" in url.lower():
+        # Check for "Gelince Haber Ver" button (out of stock indicator)
+        submit_btn = soup.find("button", id="submit-button")
+        if submit_btn:
+            btn_text = submit_btn.get_text().lower().strip()
+            if "gelince haber ver" in btn_text:
+                return False
+        # Also check any button with this text
+        all_buttons = soup.find_all("button")
+        for btn in all_buttons:
+            if "gelince haber ver" in btn.get_text().lower():
+                return False
+        # If we find "Sepete Ekle" button, it's in stock
+        for btn in all_buttons:
+            if "sepete ekle" in btn.get_text().lower():
+                return True
+    
+    # --- SEPHORA: Check for "Sepete ekle" button or "Stok Mevcut" text ---
+    # Sephora lacks JSON-LD Product schema, need DOM check
+    if "sephora.com" in url.lower():
+        # Positive indicators (IN STOCK)
+        if "stok mevcut" in page_text:
+            return True
+        # Check for add-to-cart button
+        add_cart_btn = soup.find("button", id="add-to-cart")
+        if add_cart_btn:
+            btn_text = add_cart_btn.get_text().lower()
+            if "sepete ekle" in btn_text:
+                return True
+        # Also check for any button with "Sepete ekle"
+        all_buttons = soup.find_all("button")
+        for btn in all_buttons:
+            if "sepete ekle" in btn.get_text().lower():
+                return True
+        # Negative indicators (OUT OF STOCK)
+        if "stokta yok" in page_text:
+            return False
+        # If no clear indicator, assume in stock (Sephora usually shows stock issues prominently)
+        return True
+    
+    # ========================
+    # GENERIC CHECKS (For other sites)
+    # ========================
+    
+    # 1. Positive indicators first (prevents false negatives)
+    positive_patterns = [
+        "sepete ekle", "sepete at", "satın al", "hemen al",
+        "stok mevcut", "stokta var", "add to cart", "buy now"
+    ]
+    for pattern in positive_patterns:
+        if pattern in page_text:
+            # Found positive indicator, but still check for out-of-stock
+            break
+    
+    # 2. "Gelince Haber Ver" - Universal Turkish out-of-stock indicator
+    if "gelince haber ver" in page_text:
+        return False
+    
+    # 3. JSON-LD availability check
+    if json_ld and "offers" in json_ld:
+        offers = json_ld["offers"]
+        if isinstance(offers, list):
+            offer = offers[0] if offers else {}
+        else:
+            offer = offers
+        
+        availability = offer.get("availability", "")
+        if availability:
+            # Check for OUT OF STOCK
+            out_of_stock_indicators = ["OutOfStock", "SoldOut", "Discontinued"]
+            for indicator in out_of_stock_indicators:
+                if indicator.lower() in availability.lower():
+                    return False
+            # Check for IN STOCK
+            if "instock" in availability.lower():
+                return True
+    
+    # 4. Common out-of-stock text patterns
+    out_of_stock_patterns = [
+        "stokta yok", "tükendi", "stok tükendi", 
+        "stoğu tükendi", "satışta değil", 
+        "out of stock", "sold out"
+    ]
+    for pattern in out_of_stock_patterns:
+        if pattern in page_text:
+            return False
+    
+    # 5. Check for disabled add-to-cart buttons
+    add_to_cart_btn = soup.find("button", attrs={"disabled": True})
+    if add_to_cart_btn:
+        btn_text = add_to_cart_btn.get_text().lower()
+        if "sepet" in btn_text or "cart" in btn_text:
+            return False
+    
+    # Default: assume in stock if no negative indicators found
+    return True
+
+
 
 def get_product_details(url):
     # --- GÜÇLENDİRİLMİŞ SELENIUM AYARLARI ---
@@ -109,7 +221,7 @@ def get_product_details(url):
     chrome_options.add_argument("--disable-logging")
 
     driver = None
-    data = {"site": "", "title": "", "price": 0.0, "original_price": 0.0, "seller": "-"}
+    data = {"site": "", "title": "", "price": 0.0, "original_price": 0.0, "seller": "-", "is_in_stock": True}
 
     try:
         service = Service(ChromeDriverManager().install())
@@ -597,16 +709,15 @@ def get_product_details(url):
         elif "kikomilano" in url:
             data["site"] = "Kiko Milano"
             
-            # 1. JSON-LD Structured Data (En Güvenilir Yöntem)
+            # 1. JSON-LD Structured Data (sadece indirimli fiyatı içerir)
             json_ld = get_json_ld(soup)
             if json_ld:
                 # Başlık
                 data["title"] = json_ld.get("name", "Kiko Ürünü")
                 
-                # Fiyat (offers içinde)
+                # Fiyat (offers içinde - indirimli fiyat)
                 if "offers" in json_ld:
                     offers = json_ld["offers"]
-                    # offers bazen liste, bazen tek obje olabilir
                     if isinstance(offers, list):
                         offer = offers[0] if offers else {}
                     else:
@@ -614,7 +725,6 @@ def get_product_details(url):
                     
                     if "price" in offer:
                         price_value = offer["price"]
-                        # Fiyat string veya number olabilir
                         data["price"] = clean_price(str(price_value))
                 
                 # Marka
@@ -625,15 +735,26 @@ def get_product_details(url):
                     else:
                         data["seller"] = "Kiko Milano"
             
-            # 2. Fallback: CSS Selectors (JSON-LD yoksa)
+            # 2. Orijinal Fiyat (İndirimli ürünler için)
+            # .price.-retail pz-price elementini ara
+            retail_container = soup.find("div", class_=lambda x: x and "-retail" in x)
+            if retail_container:
+                retail_price_elem = retail_container.find("pz-price")
+                if retail_price_elem:
+                    original = clean_price(retail_price_elem.get_text())
+                    if original > 0:
+                        data["original_price"] = original
+            
+            # 3. Fallback: CSS Selectors (JSON-LD yoksa)
             if data["price"] == 0.0:
-                # Fiyat için pz-price elementi
-                price_elem = soup.find("pz-price")
+                # İndirimli fiyat için pz-price[data-testid="price"]
+                price_elem = soup.find("pz-price", attrs={"data-testid": "price"})
+                if not price_elem:
+                    price_elem = soup.find("pz-price")
                 if price_elem:
                     data["price"] = clean_price(price_elem.get_text())
             
             if not data["title"] or data["title"] == "Kiko Ürünü":
-                # Başlık için h1.product-info-left__title
                 h1 = soup.find("h1", class_="product-info-left__title")
                 if not h1:
                     h1 = soup.find("h1")
@@ -702,7 +823,17 @@ def get_product_details(url):
             print(f"UYARI: Desteklenmeyen site ({url})")
             return None
 
+        # --- STOK DURUMU KONTROLÜ (TÜM SİTELER) ---
+        json_ld = get_json_ld(soup)
+        data["is_in_stock"] = check_stock_status(soup, json_ld, url)
+        
+        # Fiyat 0 ise ve stokta yoksa, stok durumunu dön
         if data["price"] == 0.0:
+            if not data["is_in_stock"]:
+                # Ürün stokta yok, title varsa data'yı dönür
+                if data.get("title"):
+                    print(f"      ⚠️ STOKTA YOK: {data.get('title', 'Ürün')}")
+                    return data
             return None
 
         return data

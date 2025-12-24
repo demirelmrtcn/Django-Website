@@ -58,6 +58,9 @@ class TrackedProduct(models.Model):
     
     # --- TRENDYOL PLUS FİYATI ---
     plus_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Plus Fiyatı")
+    
+    # --- STOK DURUMU ---
+    is_in_stock = models.BooleanField(default=True, verbose_name="Stokta Var")
 
     def __str__(self):
         return self.product_name

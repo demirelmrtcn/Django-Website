@@ -172,7 +172,17 @@
                             </td>
                             <td class="text-end" style="min-width: 140px;">
                                 <div class="d-flex flex-column align-items-end">
-                                    {% if product.original_price > product.current_price %}
+                                    {% if not product.is_in_stock %}
+                                    <!-- STOKTA YOK -->
+                                    <span class="badge bg-danger mb-1" style="font-size: 0.75rem;">
+                                        <i class="fas fa-times-circle me-1"></i>Stokta Yok
+                                    </span>
+                                    {% if product.current_price > 0 %}
+                                    <small class="text-muted text-decoration-line-through">
+                                        {{ product.current_price|intcomma }} ₺
+                                    </small>
+                                    {% endif %}
+                                    {% elif product.original_price > product.current_price %}
                                     <small class="text-decoration-line-through text-muted" style="font-size: 0.8rem;">
                                         {{ product.original_price|intcomma }} ₺
                                     </small>
