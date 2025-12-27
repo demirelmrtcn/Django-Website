@@ -301,17 +301,25 @@
 
         <!-- Action Buttons -->
         <div class="row g-3 mb-4">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <button class="btn btn-danger btn-add w-100" data-bs-toggle="modal" data-bs-target="#expenseModal">
                     <i class="fas fa-minus-circle me-2"></i>Harcama Ekle
                 </button>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <button class="btn btn-success btn-add w-100" data-bs-toggle="modal" data-bs-target="#incomeModal">
                     <i class="fas fa-plus-circle me-2"></i>Gelir Ekle
                 </button>
             </div>
+            <div class="col-md-4">
+                <button class="btn btn-add w-100"
+                    style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;"
+                    onclick="generatePDF()">
+                    <i class="fas fa-file-pdf me-2"></i>PDF Olarak Kaydet
+                </button>
+            </div>
         </div>
+
 
         <!-- Transactions Table -->
         <div class="data-table mb-4">
@@ -464,7 +472,12 @@
         </div>
     </div>
 
+    <!-- html2pdf.js for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
         const ctx = document.getElementById('financeChart').getContext('2d');
         new Chart(ctx, {
@@ -547,6 +560,270 @@
         }
         });
         {% endif %}
+
+        // ============================================
+        // PDF EXPORT FUNCTION - Kredi Kartı Ekstresi Tarzı
+        // ============================================
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            let yPos = 15;
+
+            // Turkce karakter ve HTML entity duzeltme fonksiyonu (PDF icin)
+            function fixTurkish(text) {
+                if (!text) return text;
+                // Once HTML entity'leri decode et
+                let decoded = String(text)
+                    .replace(/&amp;/g, '&')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#39;/g, "'");
+                // Sonra Turkce karakterleri ASCII'ye donustur
+                return decoded
+                    .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+                    .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+                    .replace(/ş/g, 's').replace(/Ş/g, 'S')
+                    .replace(/ı/g, 'i').replace(/İ/g, 'I')
+                    .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+                    .replace(/ç/g, 'c').replace(/Ç/g, 'C')
+                    .replace(/₺/g, 'TL');
+            }
+
+            const mainFont = 'helvetica';
+
+            // Renkler
+            const primaryColor = [102, 126, 234];
+            const successColor = [16, 185, 129];
+            const dangerColor = [239, 68, 68];
+            const grayColor = [100, 116, 139];
+
+            // ===== HEADER =====
+            pdf.setFillColor(...primaryColor);
+            pdf.rect(0, 0, pageWidth, 35, 'F');
+
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(22);
+            pdf.setFont(mainFont, 'bold');
+            pdf.text(fixTurkish('HESAP EKSTRESI'), pageWidth / 2, 18, { align: 'center' });
+
+            pdf.setFontSize(11);
+            pdf.setFont(mainFont, 'normal');
+            pdf.text(fixTurkish('{{ selected_date|date:"F Y" }}'), pageWidth / 2, 28, { align: 'center' });
+
+            yPos = 45;
+
+            // ===== OZET KUTUSU =====
+            pdf.setFillColor(248, 250, 252);
+            pdf.roundedRect(15, yPos, pageWidth - 30, 40, 3, 3, 'F');
+
+            // 3 sutun icin genislik hesapla
+            const boxWidth = (pageWidth - 30) / 3;
+            const col1X = 15 + boxWidth / 2;
+            const col2X = 15 + boxWidth + boxWidth / 2;
+            const col3X = 15 + boxWidth * 2 + boxWidth / 2;
+
+            // Gelir (Sol)
+            pdf.setTextColor(...grayColor);
+            pdf.setFontSize(9);
+            pdf.setFont(mainFont, 'normal');
+            pdf.text('TOPLAM GELIR', col1X, yPos + 12, { align: 'center' });
+            pdf.setTextColor(...successColor);
+            pdf.setFontSize(16);
+            pdf.setFont(mainFont, 'bold');
+            pdf.text('+{{ total_income|floatformat:0 }} TL', col1X, yPos + 26, { align: 'center' });
+
+            // Gider (Orta)
+            pdf.setTextColor(...grayColor);
+            pdf.setFontSize(9);
+            pdf.setFont(mainFont, 'normal');
+            pdf.text('TOPLAM GIDER', col2X, yPos + 12, { align: 'center' });
+            pdf.setTextColor(...dangerColor);
+            pdf.setFontSize(16);
+            pdf.setFont(mainFont, 'bold');
+            pdf.text('-{{ total_expense|floatformat:0 }} TL', col2X, yPos + 26, { align: 'center' });
+
+            // Net (Sag)
+            pdf.setTextColor(...grayColor);
+            pdf.setFontSize(9);
+            pdf.setFont(mainFont, 'normal');
+            pdf.text('NET BAKIYE', col3X, yPos + 12, { align: 'center' });
+            pdf.setTextColor(...primaryColor);
+            pdf.setFontSize(16);
+            pdf.setFont(mainFont, 'bold');
+            pdf.text('{{ balance|floatformat:0 }} TL', col3X, yPos + 26, { align: 'center' });
+
+            yPos += 50;
+
+            // ===== İŞLEM LİSTESİ BAŞLIĞI =====
+            pdf.setFillColor(...primaryColor);
+            pdf.rect(15, yPos, pageWidth - 30, 8, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(10);
+            pdf.setFont(mainFont, 'bold');
+            pdf.text(fixTurkish('TARIH'), 20, yPos + 5.5);
+            pdf.text(fixTurkish('ACIKLAMA'), 55, yPos + 5.5);
+            pdf.text(fixTurkish('KATEGORI'), 120, yPos + 5.5);
+            pdf.text('TUTAR', pageWidth - 25, yPos + 5.5, { align: 'right' });
+
+            yPos += 12;
+
+            // ===== İŞLEMLER =====
+            const transactions = [
+                {% for item in transactions %}
+        {
+            date: '{{ item.date|date:"d.m.Y" }}',
+                title: '{{ item.title|escapejs }}',
+                    category: '{{ item.get_category_display }}',
+                        amount: parseFloat('{{ item.amount|stringformat:"f" }}'),
+                            type: '{{ item.transaction_type }}'
+        } {% if not forloop.last %}, {% endif %}
+        {% endfor %}
+            ];
+
+        pdf.setFontSize(9);
+        transactions.forEach((t, i) => {
+            if (yPos > pageHeight - 40) {
+                pdf.addPage();
+                yPos = 20;
+            }
+
+            // Alternatif satır rengi
+            if (i % 2 === 0) {
+                pdf.setFillColor(248, 250, 252);
+                pdf.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+            }
+
+            pdf.setTextColor(50, 50, 50);
+            pdf.setFont(mainFont, 'normal');
+            pdf.text(t.date, 20, yPos);
+
+            // Başlık (uzunsa kes)
+            let title = t.title.length > 30 ? t.title.substring(0, 27) + '...' : t.title;
+            pdf.text(fixTurkish(title), 55, yPos);
+
+            // Kategori
+            pdf.setTextColor(...grayColor);
+            pdf.text(fixTurkish(t.category || 'Genel'), 120, yPos);
+
+            // Tutar
+            if (t.type === 'income') {
+                pdf.setTextColor(...successColor);
+                pdf.text('+' + t.amount.toLocaleString('tr-TR') + ' TL', pageWidth - 25, yPos, { align: 'right' });
+            } else {
+                pdf.setTextColor(...dangerColor);
+                pdf.text('-' + t.amount.toLocaleString('tr-TR') + ' TL', pageWidth - 25, yPos, { align: 'right' });
+            }
+
+            yPos += 8;
+        });
+
+        // ===== GRAFİKLER =====
+        // Yeni sayfa başlat
+        pdf.addPage();
+        yPos = 15;
+
+        // Header banner
+        pdf.setFillColor(...primaryColor);
+        pdf.rect(0, 0, pageWidth, 25, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(16);
+        pdf.setFont(mainFont, 'bold');
+        pdf.text('GRAFIK ANALIZI', pageWidth / 2, 16, { align: 'center' });
+
+        yPos = 35;
+
+        // ===== GRAFIK 1: Gelir/Gider Bar Chart =====
+        pdf.setFillColor(248, 250, 252);
+        pdf.roundedRect(15, yPos, pageWidth - 30, 95, 4, 4, 'F');
+
+        // Baslik
+        pdf.setTextColor(...primaryColor);
+        pdf.setFontSize(12);
+        pdf.setFont(mainFont, 'bold');
+        pdf.text('Aylik Gelir - Gider Dagilimi', pageWidth / 2, yPos + 12, { align: 'center' });
+
+        // Bar chart'i yakala - yuksek cozunurluk
+        try {
+            const barChart = document.getElementById('financeChart');
+            if (barChart) {
+                const barCanvas = await html2canvas(barChart, {
+                    scale: 6,
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    logging: false
+                });
+                const barImg = barCanvas.toDataURL('image/png');
+                pdf.addImage(barImg, 'PNG', 20, yPos + 18, pageWidth - 40, 70);
+            }
+        } catch (e) {
+            console.log('Bar chart export error:', e);
+        }
+
+        yPos += 105;
+
+        // ===== GRAFIK 2: Kategori Pie Chart =====
+        pdf.setFillColor(248, 250, 252);
+        pdf.roundedRect(15, yPos, pageWidth - 30, 95, 4, 4, 'F');
+
+        // Baslik
+        pdf.setTextColor(...primaryColor);
+        pdf.setFontSize(12);
+        pdf.setFont(mainFont, 'bold');
+        pdf.text('Harcama Kategorileri Dagilimi', pageWidth / 2, yPos + 12, { align: 'center' });
+
+        // Pie chart'i yakala - yuksek cozunurluk
+        try {
+            const pieChart = document.getElementById('categoryChart');
+            if (pieChart) {
+                const pieCanvas = await html2canvas(pieChart, {
+                    scale: 6,
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    logging: false
+                });
+                const pieImg = pieCanvas.toDataURL('image/png');
+                pdf.addImage(pieImg, 'PNG', 35, yPos + 18, pageWidth - 70, 70);
+            }
+        } catch (e) {
+            console.log('Pie chart export error:', e);
+        }
+
+        yPos += 105;
+
+        // Alt bilgi kutusu
+        pdf.setFillColor(240, 245, 250);
+        pdf.roundedRect(15, yPos, pageWidth - 30, 20, 4, 4, 'F');
+
+        pdf.setTextColor(...grayColor);
+        pdf.setFontSize(9);
+        pdf.setFont(mainFont, 'normal');
+        pdf.text(fixTurkish('Bu rapor otomatik olarak olusturulmustur.'), pageWidth / 2, yPos + 13, { align: 'center' });
+
+        // ===== FOOTER =====
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            pdf.setFontSize(8);
+            pdf.setTextColor(...grayColor);
+            // Tarih formatla (GG.AA.YYYY)
+            const today = new Date();
+            const dateStr = today.getDate().toString().padStart(2, '0') + '.' +
+                (today.getMonth() + 1).toString().padStart(2, '0') + '.' +
+                today.getFullYear();
+            pdf.text(
+                'Olusturma Tarihi: ' + dateStr + ' | Sayfa ' + i + '/' + totalPages,
+                pageWidth / 2,
+                pageHeight - 10,
+                { align: 'center' }
+            );
+        }
+
+        // PDF'i kaydet
+        pdf.save(`Hesap_Ekstresi_{{ selected_date|date:"Y_m" }}.pdf`);
+        }
     </script>
 
 </body>
