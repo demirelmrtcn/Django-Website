@@ -794,56 +794,82 @@ def download_media(request):
         unique_id = str(uuid.uuid4())[:8]
         temp_dir = tempfile.gettempdir()
         
-        # yt-dlp ayarları
+        # yt-dlp temel ayarları
+        base_opts = {
+            'outtmpl': os.path.join(temp_dir, f'{unique_id}.%(ext)s'),
+            'quiet': True,
+            'no_warnings': True,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            },
+            'socket_timeout': 60,
+            'retries': 10,
+            'fragment_retries': 10,
+            'extractor_retries': 5,
+            'file_access_retries': 5,
+            'skip_unavailable_fragments': True,
+            'ignoreerrors': False,
+        }
+        
+        # Format ayarları
         if format_type == 'audio':
-            # MP3 formatı için - kalite seçeneği ile
             audio_quality = quality if quality in ['320', '192', '128', '64'] else '192'
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'outtmpl': os.path.join(temp_dir, f'{unique_id}.%(ext)s'),
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': audio_quality,
-                }],
-                'quiet': True,
-                'no_warnings': True,
-            }
+            base_opts['format'] = 'bestaudio/best'
+            base_opts['postprocessors'] = [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': audio_quality,
+            }]
             expected_ext = 'mp3'
         else:
-            # MP4 formatı için - kalite seçeneği ile
             video_quality = quality if quality in ['2160', '1440', '1080', '720', '480', '360'] else '1080'
-            
-            # Kaliteye göre format string oluştur
-            format_string = f'bestvideo[height<={video_quality}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={video_quality}]+bestaudio/best[height<={video_quality}]/best'
-            
-            ydl_opts = {
-                'format': format_string,
-                'outtmpl': os.path.join(temp_dir, f'{unique_id}.%(ext)s'),
-                'merge_output_format': 'mp4',
-                'quiet': True,
-                'no_warnings': True,
-            }
+            # YouTube için daha stabil: tek akış formatı
+            # Kalite sınırı tercih olarak belirtiliyor
+            base_opts['format'] = f'best[height<={video_quality}]/best'
+            base_opts['merge_output_format'] = 'mp4'
             expected_ext = 'mp4'
         
-        # Video bilgilerini al ve indir
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            title = info.get('title', 'media')
-            
-            # Dosya yolunu bul
-            if format_type == 'audio':
-                file_path = os.path.join(temp_dir, f'{unique_id}.mp3')
+        # YouTube URL'si için özel ayarlar
+        is_youtube = 'youtube.com' in url or 'youtu.be' in url
+        if is_youtube:
+            base_opts['extractor_args'] = {'youtube': {'player_client': ['ios']}}
+            base_opts['nocheckcertificate'] = True
+        
+        # İndir
+        try:
+            with yt_dlp.YoutubeDL(base_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+        except yt_dlp.DownloadError as e:
+            # iOS başarısız olursa android dene
+            if is_youtube:
+                base_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
+                try:
+                    with yt_dlp.YoutubeDL(base_opts) as ydl:
+                        info = ydl.extract_info(url, download=True)
+                except yt_dlp.DownloadError:
+                    # Son çare: herhangi bir format
+                    base_opts['format'] = 'best'
+                    del base_opts['extractor_args']
+                    with yt_dlp.YoutubeDL(base_opts) as ydl:
+                        info = ydl.extract_info(url, download=True)
             else:
-                # Video için farklı uzantılar olabilir
-                for ext in ['mp4', 'webm', 'mkv']:
-                    potential_path = os.path.join(temp_dir, f'{unique_id}.{ext}')
-                    if os.path.exists(potential_path):
-                        file_path = potential_path
-                        expected_ext = ext
-                        break
-                else:
-                    file_path = os.path.join(temp_dir, f'{unique_id}.mp4')
+                raise e
+        
+        title = info.get('title', 'media')
+        
+        # Dosya yolunu bul
+        if format_type == 'audio':
+            file_path = os.path.join(temp_dir, f'{unique_id}.mp3')
+        else:
+            # Video için farklı uzantılar olabilir
+            for ext in ['mp4', 'webm', 'mkv']:
+                potential_path = os.path.join(temp_dir, f'{unique_id}.{ext}')
+                if os.path.exists(potential_path):
+                    file_path = potential_path
+                    expected_ext = ext
+                    break
+            else:
+                file_path = os.path.join(temp_dir, f'{unique_id}.mp4')
         
         if not os.path.exists(file_path):
             return JsonResponse({'error': 'Dosya indirilemedi!'}, status=500)
