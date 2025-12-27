@@ -3,9 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum
 from django.utils import timezone
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse, FileResponse, JsonResponse
 from django.db import transaction
-from .models import Transaction, TrackedProduct, PriceHistory
+from .models import Transaction, TrackedProduct, PriceHistory, Note, CalendarEvent
 from .forms import TransactionForm, AddProductForm
 from .utils import get_product_details
 import datetime
@@ -14,6 +14,13 @@ from django.urls import reverse
 from django.core.mail import send_mail, get_connection, EmailMultiAlternatives
 from django.conf import settings
 from decimal import Decimal
+import json
+import yt_dlp
+import os
+import uuid
+import tempfile
+from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.csrf import csrf_exempt
 import json
 
 @login_required
@@ -312,8 +319,6 @@ def delete_product(request, id):
     return redirect('price_tracking_dashboard')
 
 
-
-
 @login_required
 def run_price_bot(request):
     def event_stream():
@@ -502,13 +507,6 @@ def run_price_bot(request):
 # ============================================================
 # ORGANIZER - NOTES & CALENDAR VIEWS
 # ============================================================
-
-from .models import Note, CalendarEvent
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST, require_GET
-from django.views.decorators.csrf import csrf_exempt
-import json
-
 
 @login_required
 def organizer_dashboard(request):
@@ -769,3 +767,108 @@ def get_events(request):
     return JsonResponse(events_list, safe=False)
 
 
+# ============================================================
+# MEDIA DOWNLOADER VIEWS
+# ============================================================
+
+@login_required
+def media_downloader_dashboard(request):
+    """Ana medya indirici sayfası"""
+    return render(request, 'core/media_downloader.html')
+
+
+@login_required
+@require_POST
+def download_media(request):
+    """Video/ses indirme endpoint'i"""
+    try:
+        data = json.loads(request.body)
+        url = data.get('url', '').strip()
+        format_type = data.get('format', 'video')  # 'video' veya 'audio'
+        
+        if not url:
+            return JsonResponse({'error': 'URL gerekli!'}, status=400)
+        
+        # Geçici dosya için unique isim oluştur
+        unique_id = str(uuid.uuid4())[:8]
+        temp_dir = tempfile.gettempdir()
+        
+        # yt-dlp ayarları
+        if format_type == 'audio':
+            # MP3 formatı için
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': os.path.join(temp_dir, f'{unique_id}.%(ext)s'),
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+                'quiet': True,
+                'no_warnings': True,
+            }
+            expected_ext = 'mp3'
+        else:
+            # MP4 formatı için
+            ydl_opts = {
+                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'outtmpl': os.path.join(temp_dir, f'{unique_id}.%(ext)s'),
+                'merge_output_format': 'mp4',
+                'quiet': True,
+                'no_warnings': True,
+            }
+            expected_ext = 'mp4'
+        
+        # Video bilgilerini al ve indir
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            title = info.get('title', 'media')
+            
+            # Dosya yolunu bul
+            if format_type == 'audio':
+                file_path = os.path.join(temp_dir, f'{unique_id}.mp3')
+            else:
+                # Video için farklı uzantılar olabilir
+                for ext in ['mp4', 'webm', 'mkv']:
+                    potential_path = os.path.join(temp_dir, f'{unique_id}.{ext}')
+                    if os.path.exists(potential_path):
+                        file_path = potential_path
+                        expected_ext = ext
+                        break
+                else:
+                    file_path = os.path.join(temp_dir, f'{unique_id}.mp4')
+        
+        if not os.path.exists(file_path):
+            return JsonResponse({'error': 'Dosya indirilemedi!'}, status=500)
+        
+        # Dosya boyutunu al
+        file_size = os.path.getsize(file_path)
+        
+        # Güvenli dosya adı oluştur
+        safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip()[:50]
+        filename = f"{safe_title}.{expected_ext}"
+        
+        # Dosyayı response olarak gönder
+        response = FileResponse(
+            open(file_path, 'rb'),
+            as_attachment=True,
+            filename=filename
+        )
+        response['Content-Length'] = file_size
+        
+        # Dosyayı silmek için cleanup (response gönderildikten sonra)
+        # Not: FileResponse dosyayı kapatır ama silmez, bunu manuel yapmalıyız
+        # Şimdilik temp dizininde kalacak, OS tarafından temizlenecek
+        
+        return response
+        
+    except yt_dlp.DownloadError as e:
+        error_msg = str(e)
+        if 'Video unavailable' in error_msg:
+            return JsonResponse({'error': 'Video bulunamadı veya erişilemiyor!'}, status=400)
+        elif 'Private video' in error_msg:
+            return JsonResponse({'error': 'Bu video özel, indirilemez!'}, status=400)
+        else:
+            return JsonResponse({'error': f'İndirme hatası: {error_msg[:100]}'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Bir hata oluştu: {str(e)[:100]}'}, status=500)

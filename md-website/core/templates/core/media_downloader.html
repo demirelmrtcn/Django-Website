@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    <title>Medya İndirici - Kişisel Asistan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            margin-top: 40px;
+        }
+
+        .page-title {
+            color: #2d3748;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .page-subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+        }
+
+        .url-input {
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 15px 20px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .url-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .format-btn {
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .format-btn.video {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .format-btn.video:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .format-btn.audio {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .format-btn.audio:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(245, 87, 108, 0.4);
+        }
+
+        .format-btn.active {
+            border-color: #2d3748;
+            transform: scale(1.05);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(56, 239, 125, 0.4);
+            color: white;
+        }
+
+        .download-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .platform-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .platform-youtube {
+            background: #ff000020;
+            color: #ff0000;
+        }
+
+        .platform-instagram {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            border: 2px solid #e6683c;
+        }
+
+        .platform-twitter {
+            background: #1da1f220;
+            color: #1da1f2;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #38ef7d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: white;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .alert-custom {
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-top: 20px;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .info-section h5 {
+            color: #2d3748;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .info-section p {
+            color: #718096;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">İndiriliyor...</div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-custom">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+                <i class="fas fa-rocket me-2" style="color: #667eea;"></i>
+                Kişisel Asistan
+            </a>
+            <div>
+                <a href="{% url 'dashboard' %}" class="back-btn me-2">
+                    <i class="fas fa-arrow-left me-2"></i>Dashboard
+                </a>
+                <a href="{% url 'logout' %}" class="btn"
+                    style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; border-radius: 50px; padding: 10px 25px; font-weight: 600;">
+                    <i class="fas fa-sign-out-alt me-2"></i>Çıkış
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="main-card">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center mb-3"
+                            style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 20px;">
+                            <i class="fas fa-download fa-2x text-white"></i>
+                        </div>
+                        <h2 class="page-title">Medya İndirici</h2>
+                        <p class="page-subtitle">YouTube, Instagram Reels ve X'den video veya ses indirin</p>
+                    </div>
+
+                    <!-- Platform Badges -->
+                    <div class="text-center mb-4">
+                        <span class="platform-badge platform-youtube me-2">
+                            <i class="fab fa-youtube"></i> YouTube
+                        </span>
+                        <span class="platform-badge platform-instagram me-2">
+                            <i class="fab fa-instagram"></i> Instagram
+                        </span>
+                        <span class="platform-badge platform-twitter">
+                            <i class="fab fa-x-twitter"></i> X (Twitter)
+                        </span>
+                    </div>
+
+                    <!-- URL Input -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">
+                            <i class="fas fa-link me-2"></i>Video/Post Linki
+                        </label>
+                        <input type="url" class="form-control url-input" id="mediaUrl"
+                            placeholder="https://www.youtube.com/watch?v=... veya Instagram/X linki">
+                    </div>
+
+                    <!-- Format Selection -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark mb-3">
+                            <i class="fas fa-file-video me-2"></i>Format Seçin
+                        </label>
+                        <div class="d-flex gap-3 justify-content-center">
+                            <button type="button" class="format-btn video active" data-format="video">
+                                <i class="fas fa-video me-2"></i>Video (MP4)
+                            </button>
+                            <button type="button" class="format-btn audio" data-format="audio">
+                                <i class="fas fa-music me-2"></i>Ses (MP3)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Download Button -->
+                    <div class="text-center mt-4">
+                        <button type="button" class="download-btn" id="downloadBtn">
+                            <i class="fas fa-download me-2"></i>İndir
+                        </button>
+                    </div>
+
+                    <!-- Alert Area -->
+                    <div id="alertArea"></div>
+
+                    <!-- Info Section -->
+                    <div class="info-section">
+                        <h5><i class="fas fa-info-circle me-2"></i>Nasıl Kullanılır?</h5>
+                        <p>
+                            1. İndirmek istediğiniz videonun linkini yapıştırın<br>
+                            2. Video (MP4) veya Ses (MP3) formatını seçin<br>
+                            3. "İndir" butonuna tıklayın ve dosyanız otomatik indirilecek
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const formatBtns = document.querySelectorAll('.format-btn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const urlInput = document.getElementById('mediaUrl');
+            const alertArea = document.getElementById('alertArea');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+
+            let selectedFormat = 'video';
+
+            // Format seçimi
+            formatBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    formatBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedFormat = this.dataset.format;
+                });
+            });
+
+            // İndirme işlemi
+            downloadBtn.addEventListener('click', async function () {
+                const url = urlInput.value.trim();
+
+                if (!url) {
+                    showAlert('Lütfen bir URL girin!', 'warning');
+                    return;
+                }
+
+                // URL formatını kontrol et
+                if (!isValidUrl(url)) {
+                    showAlert('Lütfen geçerli bir URL girin!', 'warning');
+                    return;
+                }
+
+                // Loading göster
+                loadingOverlay.classList.add('active');
+                downloadBtn.disabled = true;
+                alertArea.innerHTML = '';
+
+                try {
+                    const response = await fetch('{% url "download_media" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            url: url,
+                            format: selectedFormat
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'İndirme başarısız!');
+                    }
+
+                    // Dosyayı indir
+                    const blob = await response.blob();
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = selectedFormat === 'video' ? 'video.mp4' : 'audio.mp3';
+
+                    if (contentDisposition) {
+                        const match = contentDisposition.match(/filename\*?=['"]?(?:UTF-8'')?([^;\r\n"']*)['"]?/i);
+                        if (match && match[1]) {
+                            filename = decodeURIComponent(match[1]);
+                        }
+                    }
+
+                    // Blob URL oluştur ve indir
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(blobUrl);
+
+                    showAlert('İndirme başarılı! Dosya kaydedildi.', 'success');
+
+                } catch (error) {
+                    showAlert(error.message, 'danger');
+                } finally {
+                    loadingOverlay.classList.remove('active');
+                    downloadBtn.disabled = false;
+                }
+            });
+
+            function isValidUrl(string) {
+                try {
+                    new URL(string);
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            function showAlert(message, type) {
+                alertArea.innerHTML = `
+                    <div class="alert alert-${type} alert-custom" role="alert">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'times-circle'} me-2"></i>
+                        ${message}
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+
+</html>

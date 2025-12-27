@@ -36,4 +36,8 @@ urlpatterns = [
     path('organizer/event/create/', views.create_event, name='create_event'),
     path('organizer/event/<int:id>/delete/', views.delete_event, name='delete_event'),
     path('organizer/events/', views.get_events, name='get_events'),
+
+    # --- MEDIA DOWNLOADER ---
+    path('medya-indir/', views.media_downloader_dashboard, name='media_downloader'),
+    path('medya-indir/download/', views.download_media, name='download_media'),
 ]

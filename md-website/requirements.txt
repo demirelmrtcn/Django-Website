@@ -5,3 +5,4 @@ beautifulsoup4
 python-dateutil
 python-dotenv
 requests
+yt-dlp
