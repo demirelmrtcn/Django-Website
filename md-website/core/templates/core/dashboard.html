@@ -1,285 +1,197 @@
-<!DOCTYPE html>
-<html lang="tr">
+{% extends 'core/base.html' %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% load static %}
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
-    <link rel="apple-touch-icon" sizes="180x180" href=" {% static 'images/favicon.png' %}">
-    <title>Dashboard - Kişisel Asistan</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+{% block title %}Dashboard - Kişisel Asistan{% endblock %}
+{% block brand_title %}Kişisel Asistan{% endblock %}
 
-        .navbar-custom {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
+{% block extra_css %}
+<style>
+    .welcome-section h1 {
+        color: white;
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
 
-        .welcome-section {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            margin: 30px 0;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
+    .welcome-section p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+    }
 
-        .welcome-section h1 {
-            color: white;
-            font-weight: 700;
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
+    .feature-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 40px 30px;
+        height: 100%;
+        transition: all var(--transition-base);
+        border: none;
+        box-shadow: 0 10px 40px var(--shadow-color);
+        position: relative;
+        overflow: hidden;
+    }
 
-        .welcome-section p {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.1rem;
-        }
+    .feature-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: var(--primary-gradient);
+    }
 
-        .feature-card {
-            background: white;
-            border-radius: 20px;
-            padding: 40px 30px;
-            height: 100%;
-            transition: all 0.3s ease;
-            border: none;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
+    .feature-card.accent::before {
+        background: var(--accent-gradient);
+    }
 
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-        }
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 60px var(--shadow-color);
+    }
 
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-        }
+    .feature-card h3 {
+        color: var(--text-primary);
+        font-weight: 700;
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+    }
 
-        .feature-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            margin-bottom: 25px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-        }
+    .feature-card p {
+        color: var(--text-secondary);
+        margin-bottom: 25px;
+        line-height: 1.6;
+    }
 
-        .feature-card h3 {
-            color: #2d3748;
-            font-weight: 700;
-            margin-bottom: 15px;
-            font-size: 1.5rem;
-        }
+    .info-section {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: var(--radius-lg);
+        padding: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
 
-        .feature-card p {
-            color: #718096;
-            margin-bottom: 25px;
-            line-height: 1.6;
-        }
+    [data-theme="dark"] .info-section {
+        background: rgba(255, 255, 255, 0.05);
+    }
 
-        .btn-feature {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 12px 35px;
-            border-radius: 50px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
+    .info-section i {
+        color: white;
+    }
 
-        .btn-feature:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-            color: white;
-        }
+    .info-section h5,
+    .info-section p {
+        color: white;
+    }
+</style>
+{% endblock %}
 
-        .logout-btn {
-            background: linear-gradient(135deg, #f093fb, #f5576c);
-            border: none;
-            color: white;
-            padding: 10px 25px;
-            border-radius: 50px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
+{% block content %}
+<!-- Welcome Section -->
+<div class="glass-section mb-4">
+    <h1>
+        <i class="fas fa-hand-sparkles me-3"></i>
+        Hoşgeldin, {{ user.username }}!
+    </h1>
+    <p class="mb-0">Günlük işlemlerini yönetmek için hazırız. Hangi özelliği kullanmak istersin?</p>
+</div>
 
-        .logout-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
-        }
-
-        .stats-badge {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
-            color: #2d3748;
-            padding: 8px 20px;
-            border-radius: 50px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            box-shadow: 0 4px 15px rgba(253, 203, 110, 0.4);
-        }
-    </style>
-</head>
-
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-custom">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
-                <i class="fas fa-rocket me-2" style="color: #667eea;"></i>
-                Kişisel Asistan
+<!-- Features Grid -->
+<div class="row g-4 mb-5">
+    <!-- Harcama Analizi Card -->
+    <div class="col-md-6">
+        <div class="feature-card">
+            <span class="stats-badge">
+                <i class="fas fa-chart-line me-1"></i> Aktif
+            </span>
+            <div class="feature-icon">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <h3>Harcama Analizi</h3>
+            <p>Harcamalarını takip et, gelir-gider dengeni gör ve mali durumunu analiz et.</p>
+            <a href="{% url 'finance_dashboard' %}" class="btn-primary-gradient">
+                <i class="fas fa-arrow-right"></i>
+                Hemen Başla
             </a>
-            <div>
-                <span class="me-3 text-dark">
-                    <i class="fas fa-user-circle me-1"></i>
-                    {{ user.username }}
-                </span>
-                <a href="{% url 'logout' %}" class="btn logout-btn">
-                    <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
-                </a>
-            </div>
         </div>
-    </nav>
+    </div>
 
-    <div class="container">
-        <!-- Welcome Section -->
-        <div class="welcome-section">
-            <h1>
-                <i class="fas fa-hand-sparkles me-3"></i>
-                Hoşgeldin, {{ user.username }}!
-            </h1>
-            <p>Günlük işlemlerinizi yönetmek için hazırız. Hangi özelliği kullanmak istersiniz?</p>
+    <!-- Fiyat Takip Card -->
+    <div class="col-md-6">
+        <div class="feature-card">
+            <span class="stats-badge">
+                <i class="fas fa-robot me-1"></i> Otomatik
+            </span>
+            <div class="feature-icon">
+                <i class="fas fa-tags"></i>
+            </div>
+            <h3>Fiyat Takibi</h3>
+            <p>Ürünlerin fiyat değişimlerini takip et ve en iyi fırsatları kaçırma.</p>
+            <a href="{% url 'price_tracking_dashboard' %}" class="btn-primary-gradient">
+                <i class="fas fa-arrow-right"></i>
+                Hemen Başla
+            </a>
         </div>
+    </div>
 
-        <!-- Features Grid -->
-        <div class="row g-4 mb-5">
-            <!-- Harcama Analizi Card -->
-            <div class="col-md-6">
-                <div class="feature-card">
-                    <span class="stats-badge">
-                        <i class="fas fa-chart-line me-1"></i> Aktif
-                    </span>
-                    <div class="feature-icon">
-                        <i class="fas fa-chart-pie"></i>
-                    </div>
-                    <h3>Harcama Analizi</h3>
-                    <p>Harcamalarınızı takip edin, gelir-gider dengenizi görün ve mali durumunuzu analiz edin.</p>
-                    <a href="{% url 'finance_dashboard' %}" class="btn-feature">
-                        <i class="fas fa-arrow-right me-2"></i>Hemen Başla
-                    </a>
-                </div>
+    <!-- Organizer Card -->
+    <div class="col-md-6">
+        <div class="feature-card">
+            <span class="stats-badge">
+                <i class="fas fa-star me-1"></i> Kişisel
+            </span>
+            <div class="feature-icon">
+                <i class="fas fa-calendar-check"></i>
             </div>
-
-            <!-- Fiyat Takip Card -->
-            <div class="col-md-6">
-                <div class="feature-card">
-                    <span class="stats-badge">
-                        <i class="fas fa-robot me-1"></i> Otomatik
-                    </span>
-                    <div class="feature-icon">
-                        <i class="fas fa-tags"></i>
-                    </div>
-                    <h3>Fiyat Takibi</h3>
-                    <p>Ürünlerin fiyat değişimlerini takip edin ve en iyi fırsatları kaçırmayın.</p>
-                    <a href="{% url 'price_tracking_dashboard' %}" class="btn-feature">
-                        <i class="fas fa-arrow-right me-2"></i>Hemen Başla
-                    </a>
-                </div>
-            </div>
-
-            <!-- Organizer Card -->
-            <div class="col-md-6">
-                <div class="feature-card">
-                    <span class="stats-badge">
-                        <i class="fas fa-star me-1"></i> Kişisel
-                    </span>
-                    <div class="feature-icon">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <h3>Notlar & Takvim</h3>
-                    <p>Notlarınızı yazın, yapılacaklarınızı listeleyin ve özel anlarınızı takvimde işaretleyin.</p>
-                    <a href="{% url 'organizer_dashboard' %}" class="btn-feature">
-                        <i class="fas fa-arrow-right me-2"></i>Hemen Başla
-                    </a>
-                </div>
-            </div>
-
-            <!-- Media Downloader Card -->
-            <div class="col-md-6">
-                <div class="feature-card">
-                    <span class="stats-badge"
-                        style="background: linear-gradient(135deg, #11998e, #38ef7d); color: white;">
-                        <i class="fas fa-bolt me-1"></i> Hızlı
-                    </span>
-                    <div class="feature-icon" style="background: linear-gradient(135deg, #11998e, #38ef7d);">
-                        <i class="fas fa-download"></i>
-                    </div>
-                    <h3>Medya İndirici</h3>
-                    <p>YouTube, Instagram Reels ve X'den video veya ses dosyalarını kolayca indirin.</p>
-                    <a href="{% url 'media_downloader' %}" class="btn-feature"
-                        style="background: linear-gradient(135deg, #11998e, #38ef7d);">
-                        <i class="fas fa-arrow-right me-2"></i>Hemen Başla
-                    </a>
-                </div>
-            </div>
+            <h3>Notlar & Takvim</h3>
+            <p>Notlarını yaz, yapılacaklarını listele ve özel anlarını takvimde işaretle.</p>
+            <a href="{% url 'organizer_dashboard' %}" class="btn-primary-gradient">
+                <i class="fas fa-arrow-right"></i>
+                Hemen Başla
+            </a>
         </div>
+    </div>
 
+    <!-- Media Downloader Card -->
+    <div class="col-md-6">
+        <div class="feature-card accent">
+            <span class="stats-badge" style="background: var(--accent-gradient); color: white;">
+                <i class="fas fa-bolt me-1"></i> Hızlı
+            </span>
+            <div class="feature-icon accent">
+                <i class="fas fa-download"></i>
+            </div>
+            <h3>Medya İndirici</h3>
+            <p>YouTube, Instagram Reels ve X'den video veya ses dosyalarını kolayca indir.</p>
+            <a href="{% url 'media_downloader' %}" class="btn-accent-gradient">
+                <i class="fas fa-arrow-right"></i>
+                Hemen Başla
+            </a>
+        </div>
+    </div>
+</div>
 
-        <!-- Info Section -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <div
-                    style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 25px; border: 1px solid rgba(255,255,255,0.2);">
-                    <div class="row text-white text-center">
-                        <div class="col-md-4 mb-3 mb-md-0">
-                            <i class="fas fa-shield-alt fa-2x mb-2"></i>
-                            <h5>Güvenli</h5>
-                            <p class="small mb-0">Verileriniz güvende</p>
-                        </div>
-                        <div class="col-md-4 mb-3 mb-md-0">
-                            <i class="fas fa-clock fa-2x mb-2"></i>
-                            <h5>7/24 Aktif</h5>
-                            <p class="small mb-0">Her zaman erişilebilir</p>
-                        </div>
-                        <div class="col-md-4">
-                            <i class="fas fa-mobile-alt fa-2x mb-2"></i>
-                            <h5>Responsive</h5>
-                            <p class="small mb-0">Tüm cihazlarda çalışır</p>
-                        </div>
-                    </div>
+<!-- Info Section -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="info-section">
+            <div class="row text-center">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                    <h5>Güvenli</h5>
+                    <p class="small mb-0 opacity-75">Verilerin güvende</p>
+                </div>
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <i class="fas fa-clock fa-2x mb-2"></i>
+                    <h5>7/24 Aktif</h5>
+                    <p class="small mb-0 opacity-75">Her zaman erişilebilir</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                    <h5>Responsive</h5>
+                    <p class="small mb-0 opacity-75">Tüm cihazlarda çalışır</p>
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-
-</html>
+</div>
+{% endblock %}

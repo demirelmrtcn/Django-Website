@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="{% block meta_description %}Kişisel Asistan - Hayatınızı kolaylaştıran araçlar{% endblock %}">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/favicon.png' %}">
+
+    <title>{% block title %}Kişisel Asistan{% endblock %}</title>
+
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
+    <!-- Global Styles -->
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+
+    {% block extra_css %}{% endblock %}
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-rocket"></i>
+                <span>{% block brand_title %}Kişisel Asistan{% endblock %}</span>
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                {% block navbar_extra %}{% endblock %}
+
+                <!-- Theme Toggle -->
+                <button class="theme-toggle" id="themeToggle" title="Tema Değiştir">
+                    <i class="fas fa-sun" id="themeIcon"></i>
+                </button>
+
+                {% if user.is_authenticated %}
+                <span class="d-none d-md-inline" style="color: var(--text-primary);">
+                    <i class="fas fa-user-circle me-1"></i>
+                    {{ user.username }}
+                </span>
+                <a href="{% url 'logout' %}" class="btn-danger-gradient" style="padding: 10px 20px;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="d-none d-md-inline">Çıkış</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="{% block main_class %}container py-4{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    {% block footer %}{% endblock %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Theme Toggle Script -->
+    <script>
+        (function () {
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const html = document.documentElement;
+
+            // Check saved theme or system preference
+            const savedTheme = localStorage.getItem('theme');
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initialTheme = savedTheme || (systemDark ? 'dark' : 'light');
+
+            // Apply initial theme
+            html.setAttribute('data-theme', initialTheme);
+            updateIcon(initialTheme);
+
+            // Toggle handler
+            themeToggle.addEventListener('click', function () {
+                const current = html.getAttribute('data-theme');
+                const next = current === 'dark' ? 'light' : 'dark';
+
+                html.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+                updateIcon(next);
+            });
+
+            function updateIcon(theme) {
+                if (theme === 'dark') {
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                } else {
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                }
+            }
+        })();
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

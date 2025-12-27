@@ -1,831 +1,733 @@
+{% extends 'core/base.html' %}
 {% load humanize %}
 {% load custom_filters %}
+{% load static %}
 
-<!DOCTYPE html>
-<html lang="tr">
+{% block title %}Cüzdanım - Finance Manager{% endblock %}
+{% block brand_title %}Cüzdanım{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% load static %}
-    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
-    <title>Cüzdanım - Finance Manager</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+{% block navbar_extra %}
+<a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-home me-1"></i>Ana Menü
+</a>
+{% endblock %}
 
-        .navbar-custom {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-        }
+{% block extra_css %}
+<style>
+    .stats-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        box-shadow: 0 10px 40px var(--shadow-color);
+        border: none;
+        position: relative;
+        overflow: hidden;
+        transition: all var(--transition-base);
+    }
 
-        .stats-card {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            border: none;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
+    .stats-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+    }
 
-        .stats-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-        }
+    .stats-card.income::before {
+        background: var(--success-gradient);
+    }
 
-        .stats-card.income::before {
-            background: linear-gradient(90deg, #10b981, #34d399);
-        }
+    .stats-card.expense::before {
+        background: var(--danger-gradient);
+    }
 
-        .stats-card.expense::before {
-            background: linear-gradient(90deg, #ef4444, #f87171);
-        }
+    .stats-card.balance::before {
+        background: var(--primary-gradient);
+    }
 
-        .stats-card.balance::before {
-            background: linear-gradient(90deg, #667eea, #764ba2);
-        }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
 
-        .stats-card:hover {
-            transform: translateY(-5px);
-        }
+    .month-selector {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: var(--radius-full);
+        padding: 15px 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
 
-        .data-table {
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
+    [data-theme="dark"] .month-selector {
+        background: rgba(255, 255, 255, 0.05);
+    }
 
-        .month-selector {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 50px;
-            padding: 15px 30px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
+    .month-btn {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        background: var(--bg-card);
+        border: none;
+        color: var(--primary-start);
+        transition: all var(--transition-base);
+        box-shadow: 0 4px 15px var(--shadow-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        flex-shrink: 0;
+    }
 
-        .month-btn {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: white;
-            border: none;
-            color: #667eea;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            flex-shrink: 0;
-        }
+    .month-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        color: var(--primary-start);
+    }
 
-        .month-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-            color: #667eea;
-        }
+    select.month-dropdown {
+        background: var(--bg-card);
+        border: none;
+        border-radius: var(--radius-lg);
+        padding: 10px 20px;
+        font-weight: var(--font-weight-bold);
+        color: var(--primary-start);
+        cursor: pointer;
+        min-width: 200px;
+        flex-shrink: 0;
+    }
 
-        select.month-dropdown {
-            background: white;
-            border: none;
-            border-radius: 15px;
-            padding: 10px 20px;
-            font-weight: 700;
-            color: #667eea;
-            cursor: pointer;
-            min-width: 200px;
-            flex-shrink: 0;
-        }
+    .btn-add {
+        border-radius: var(--radius-full);
+        padding: 15px 30px;
+        font-weight: var(--font-weight-semibold);
+        border: none;
+        transition: all var(--transition-base);
+    }
 
-        .btn-add {
-            border-radius: 50px;
-            padding: 15px 30px;
-            font-weight: 600;
-            border: none;
-            transition: all 0.3s ease;
-        }
+    .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px var(--shadow-color);
+    }
 
-        .btn-add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        }
+    .mini-stat {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 15px;
+        box-shadow: 0 5px 20px var(--shadow-color);
+    }
 
-        .table-modern tbody tr {
-            transition: all 0.2s ease;
-        }
+    .mini-stat-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
 
-        .table-modern tbody tr:hover {
-            background: #f8f9fa;
-            transform: scale(1.01);
-        }
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
 
-        .chart-container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
+{% block content %}
+<!-- Month Selector -->
+<div class="text-center mb-4">
+    <div class="month-selector">
+        <a href="?date={{ prev_month }}" class="month-btn">
+            <i class="fas fa-chevron-left"></i>
+        </a>
 
-        .amount-income {
-            color: #10b981;
-            font-weight: 700;
-        }
+        <form method="get" class="d-inline">
+            <select name="date" class="month-dropdown" onchange="this.form.submit()" id="monthSelector"
+                data-selected="{{ selected_month_str }}">
+                {% for m in month_list %}
+                <option value="{{ m|date:'Y-m' }}">
+                    {{ m|date:"F Y" }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
 
-        .amount-expense {
-            color: #ef4444;
-            font-weight: 700;
-        }
-    </style>
-</head>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var selector = document.getElementById('monthSelector');
+                var selected = selector.getAttribute('data-selected');
+                for (var i = 0; i < selector.options.length; i++) {
+                    if (selector.options[i].value === selected) {
+                        selector.selectedIndex = i;
+                        break;
+                    }
+                }
+            });
+        </script>
 
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-custom">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
-                <i class="fas fa-wallet me-2" style="color: #667eea;"></i>
-                Cüzdanım
-            </a>
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-home me-1"></i>Ana Menü
-            </a>
-        </div>
-    </nav>
+        <a href="?date={{ next_month }}" class="month-btn">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+    </div>
+</div>
 
-    <div class="container">
-        <!-- Month Selector -->
-        <div class="text-center mb-4">
-            <div class="month-selector">
-                <a href="?date={{ prev_month }}" class="month-btn">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-
-                <form method="get" class="d-inline">
-                    <select name="date" class="month-dropdown" onchange="this.form.submit()" id="monthSelector"
-                        data-selected="{{ selected_month_str }}">
-                        {% for m in month_list %}
-                        <option value="{{ m|date:'Y-m' }}">
-                            {{ m|date:"F Y" }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </form>
-
-                <script>
-                    // JavaScript ile selected ayarla (IDE formatting sorununu engellemek için)
-                    document.addEventListener('DOMContentLoaded', function () {
-                        var selector = document.getElementById('monthSelector');
-                        var selected = selector.getAttribute('data-selected');
-                        for (var i = 0; i < selector.options.length; i++) {
-                            if (selector.options[i].value === selected) {
-                                selector.selectedIndex = i;
-                                break;
-                            }
-                        }
-                    });
-                </script>
-
-                <a href="?date={{ next_month }}" class="month-btn">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stats-card income">
+            <div class="text-center">
+                <div class="mb-2">
+                    <i class="fas fa-arrow-down fa-2x" style="color: var(--success-start);"></i>
+                </div>
+                <h6 class="text-uppercase text-muted mb-2">Toplam Gelir</h6>
+                <h2 class="fw-bold amount-income">+{{ total_income|intcomma }} ₺</h2>
             </div>
         </div>
+    </div>
 
-        <!-- Stats Cards -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-4">
-                <div class="stats-card income">
-                    <div class="text-center">
-                        <div class="mb-2">
-                            <i class="fas fa-arrow-down fa-2x" style="color: #10b981;"></i>
-                        </div>
-                        <h6 class="text-uppercase text-muted mb-2">Toplam Gelir</h6>
-                        <h2 class="fw-bold amount-income">+{{ total_income|intcomma }} ₺</h2>
-                    </div>
+    <div class="col-md-4">
+        <div class="stats-card expense">
+            <div class="text-center">
+                <div class="mb-2">
+                    <i class="fas fa-arrow-up fa-2x" style="color: var(--danger-start);"></i>
                 </div>
+                <h6 class="text-uppercase text-muted mb-2">Toplam Gider</h6>
+                <h2 class="fw-bold amount-expense">-{{ total_expense|intcomma }} ₺</h2>
             </div>
+        </div>
+    </div>
 
-            <div class="col-md-4">
-                <div class="stats-card expense">
-                    <div class="text-center">
-                        <div class="mb-2">
-                            <i class="fas fa-arrow-up fa-2x" style="color: #ef4444;"></i>
-                        </div>
-                        <h6 class="text-uppercase text-muted mb-2">Toplam Gider</h6>
-                        <h2 class="fw-bold amount-expense">-{{ total_expense|intcomma }} ₺</h2>
-                    </div>
+    <div class="col-md-4">
+        <div class="stats-card balance">
+            <div class="text-center">
+                <div class="mb-2">
+                    <i class="fas fa-wallet fa-2x" style="color: var(--primary-start);"></i>
                 </div>
+                <h6 class="text-uppercase text-muted mb-2">Net Durum</h6>
+                <h2 class="fw-bold" style="color: var(--primary-start);">{{ balance|intcomma }} ₺</h2>
             </div>
+        </div>
+    </div>
+</div>
 
-            <div class="col-md-4">
-                <div class="stats-card balance">
-                    <div class="text-center">
-                        <div class="mb-2">
-                            <i class="fas fa-wallet fa-2x" style="color: #667eea;"></i>
-                        </div>
-                        <h6 class="text-uppercase text-muted mb-2">Net Durum</h6>
-                        <h2 class="fw-bold" style="color: #667eea;">{{ balance|intcomma }} ₺</h2>
-                    </div>
+<!-- Mini Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="mini-stat">
+            <div class="d-flex align-items-center">
+                <div class="mini-stat-icon me-3" style="background: rgba(99, 102, 241, 0.1);">
+                    <i class="fas fa-calendar-day" style="color: #6366f1;"></i>
+                </div>
+                <div>
+                    <small class="text-muted">Günlük Ortalama</small>
+                    <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">
+                        {{ daily_average|floatformat:0|intcomma }} ₺</h5>
                 </div>
             </div>
         </div>
-
-        <!-- Mini Stats Cards -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="stats-card" style="padding: 15px;">
-                    <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
-                            style="width: 45px; height: 45px; background: rgba(99, 102, 241, 0.1);">
-                            <i class="fas fa-calendar-day" style="color: #6366f1;"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted">Günlük Ortalama</small>
-                            <h5 class="mb-0 fw-bold">{{ daily_average|floatformat:0|intcomma }} ₺</h5>
-                        </div>
-                    </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mini-stat">
+            <div class="d-flex align-items-center">
+                <div class="mini-stat-icon me-3" style="background: rgba(239, 68, 68, 0.1);">
+                    <i class="fas fa-fire" style="color: var(--danger-start);"></i>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stats-card" style="padding: 15px;">
-                    <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
-                            style="width: 45px; height: 45px; background: rgba(239, 68, 68, 0.1);">
-                            <i class="fas fa-fire" style="color: #ef4444;"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted">En Yüksek Kategori</small>
-                            <h5 class="mb-0 fw-bold">{{ top_category }}</h5>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stats-card" style="padding: 15px;">
-                    <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
-                            style="width: 45px; height: 45px; background: {% if expense_change_percent > 0 %}rgba(239, 68, 68, 0.1){% else %}rgba(16, 185, 129, 0.1){% endif %};">
-                            <i class="fas {% if expense_change_percent > 0 %}fa-arrow-trend-up{% else %}fa-arrow-trend-down{% endif %}"
-                                style="color: {% if expense_change_percent > 0 %}#ef4444{% else %}#10b981{% endif %};"></i>
-                        </div>
-                        <div>
-                            <small class="text-muted">Önceki Aya Göre</small>
-                            <h5
-                                class="mb-0 fw-bold {% if expense_change_percent > 0 %}text-danger{% else %}text-success{% endif %}">
-                                {% if expense_change_percent > 0 %}+{% endif %}{{ expense_change_percent }}%
-                            </h5>
-                        </div>
-                    </div>
+                <div>
+                    <small class="text-muted">En Yüksek Kategori</small>
+                    <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">{{ top_category }}</h5>
                 </div>
             </div>
         </div>
-
-        <!-- Action Buttons -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <button class="btn btn-danger btn-add w-100" data-bs-toggle="modal" data-bs-target="#expenseModal">
-                    <i class="fas fa-minus-circle me-2"></i>Harcama Ekle
-                </button>
-            </div>
-            <div class="col-md-4">
-                <button class="btn btn-success btn-add w-100" data-bs-toggle="modal" data-bs-target="#incomeModal">
-                    <i class="fas fa-plus-circle me-2"></i>Gelir Ekle
-                </button>
-            </div>
-            <div class="col-md-4">
-                <button class="btn btn-add w-100"
-                    style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;"
-                    onclick="generatePDF()">
-                    <i class="fas fa-file-pdf me-2"></i>PDF Olarak Kaydet
-                </button>
-            </div>
-        </div>
-
-
-        <!-- Transactions Table -->
-        <div class="data-table mb-4">
-            <table class="table table-modern mb-0">
-                <thead style="background: #f8f9fa;">
-                    <tr>
-                        <th class="ps-4 py-3">Tarih</th>
-                        <th class="py-3">Durum / Kalan Gün</th>
-                        <th class="py-3">Açıklama</th>
-                        <th class="text-end py-3">Tutar</th>
-                        <th class="text-center py-3">İşlem</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in transactions %}
-                    <tr>
-                        <td class="ps-4">{{ item.date|date:"d F Y" }}</td>
-                        <td>
-                            <span class="badge bg-{{ item|get_status_class }} px-3 py-2 rounded-pill">
-                                {{ item|get_status_text }}
-                            </span>
-                        </td>
-                        <td>
-                            {{ item.title }}
-                            {% if item.installment_count > 0 %}
-                            <span class="badge bg-secondary ms-1">{{ item.installment_count }} Taksit</span>
-                            {% endif %}
-                            {% if item.is_recurring %}
-                            <span class="badge bg-warning text-dark ms-1"><i class="fas fa-sync-alt"></i>
-                                Döngüsel</span>
-                            {% endif %}
-                        </td>
-                        <td
-                            class="text-end {% if item.transaction_type == 'income' %}amount-income{% else %}amount-expense{% endif %} fs-5">
-                            {% if item.transaction_type == 'income' %}+{% else %}-{% endif %}
-                            {{ item.amount|floatformat:0|intcomma }} ₺
-                        </td>
-                        <td class="text-center">
-                            <a href="{% url 'delete_transaction' item.id %}" class="btn btn-link text-danger"
-                                onclick="return confirm('Silmek istediğine emin misin?');">
-                                <i class="fas fa-trash-alt"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center py-5">
-                            <i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-25"></i><br>
-                            <span class="text-muted">Bu ay için kayıt bulunamadı.</span>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Charts Row -->
-        <div class="row g-4 mb-5">
-            <!-- Bar Chart -->
-            <div class="col-lg-7">
-                <div class="chart-container">
-                    <h5 class="mb-4"><i class="fas fa-chart-bar me-2" style="color: #667eea;"></i>Son 6 Ayın Analizi
+    </div>
+    <div class="col-md-4">
+        <div class="mini-stat">
+            <div class="d-flex align-items-center">
+                <div class="mini-stat-icon me-3"
+                    style="background: {% if expense_change_percent > 0 %}rgba(239, 68, 68, 0.1){% else %}rgba(16, 185, 129, 0.1){% endif %};">
+                    <i class="fas {% if expense_change_percent > 0 %}fa-arrow-trend-up{% else %}fa-arrow-trend-down{% endif %}"
+                        style="color: {% if expense_change_percent > 0 %}var(--danger-start){% else %}var(--success-start){% endif %};"></i>
+                </div>
+                <div>
+                    <small class="text-muted">Önceki Aya Göre</small>
+                    <h5
+                        class="mb-0 fw-bold {% if expense_change_percent > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {% if expense_change_percent > 0 %}+{% endif %}{{ expense_change_percent }}%
                     </h5>
-                    <canvas id="financeChart" style="max-height: 350px;"></canvas>
                 </div>
             </div>
-            <!-- Pie Chart -->
-            <div class="col-lg-5">
-                <div class="chart-container">
-                    <h5 class="mb-4"><i class="fas fa-chart-pie me-2" style="color: #667eea;"></i>Kategori Dağılımı</h5>
-                    {% if category_values %}
-                    <canvas id="categoryChart" style="max-height: 350px;"></canvas>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-chart-pie fa-3x text-muted opacity-25 mb-3"></i>
-                        <p class="text-muted">Bu ay için harcama verisi yok</p>
-                    </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <button class="btn btn-danger btn-add w-100" data-bs-toggle="modal" data-bs-target="#expenseModal">
+            <i class="fas fa-minus-circle me-2"></i>Harcama Ekle
+        </button>
+    </div>
+    <div class="col-md-4">
+        <button class="btn btn-success btn-add w-100" data-bs-toggle="modal" data-bs-target="#incomeModal">
+            <i class="fas fa-plus-circle me-2"></i>Gelir Ekle
+        </button>
+    </div>
+    <div class="col-md-4">
+        <button class="btn-primary-gradient btn-add w-100" onclick="generatePDF()">
+            <i class="fas fa-file-pdf me-2"></i>PDF Olarak Kaydet
+        </button>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="data-table mb-4">
+    <table class="table table-hover mb-0">
+        <thead style="background: var(--bg-card-secondary);">
+            <tr>
+                <th class="ps-4 py-3">Tarih</th>
+                <th class="py-3">Durum / Kalan Gün</th>
+                <th class="py-3">Açıklama</th>
+                <th class="text-end py-3">Tutar</th>
+                <th class="text-center py-3">İşlem</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in transactions %}
+            <tr>
+                <td class="ps-4">{{ item.date|date:"d F Y" }}</td>
+                <td>
+                    <span class="badge bg-{{ item|get_status_class }} px-3 py-2 rounded-pill">
+                        {{ item|get_status_text }}
+                    </span>
+                </td>
+                <td>
+                    {{ item.title }}
+                    {% if item.installment_count > 0 %}
+                    <span class="badge bg-secondary ms-1">{{ item.installment_count }} Taksit</span>
                     {% endif %}
-                </div>
-            </div>
+                    {% if item.is_recurring %}
+                    <span class="badge bg-warning text-dark ms-1"><i class="fas fa-sync-alt"></i>
+                        Döngüsel</span>
+                    {% endif %}
+                </td>
+                <td
+                    class="text-end {% if item.transaction_type == 'income' %}amount-income{% else %}amount-expense{% endif %} fs-5">
+                    {% if item.transaction_type == 'income' %}+{% else %}-{% endif %}
+                    {{ item.amount|floatformat:0|intcomma }} ₺
+                </td>
+                <td class="text-center">
+                    <a href="{% url 'delete_transaction' item.id %}" class="btn btn-link text-danger"
+                        onclick="return confirm('Silmek istediğine emin misin?');">
+                        <i class="fas fa-trash-alt"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-25"></i><br>
+                    <span class="text-muted">Bu ay için kayıt bulunamadı.</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-5">
+    <!-- Bar Chart -->
+    <div class="col-lg-7">
+        <div class="chart-container">
+            <h5 class="mb-4"><i class="fas fa-chart-bar me-2" style="color: var(--primary-start);"></i>Son 6 Ayın
+                Analizi</h5>
+            <canvas id="financeChart" style="max-height: 350px;"></canvas>
         </div>
     </div>
-
-
-    <!-- Modals (expense & income) - Keep existing modal code -->
-    <div class="modal fade" id="expenseModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content" style="border-radius: 20px; overflow: hidden;">
-                <div class="modal-header" style="background: linear-gradient(135deg, #ef4444, #f87171); color: white;">
-                    <h5 class="modal-title"><i class="fas fa-minus-circle me-2"></i>Harcama Girişi</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post">
-                    <div class="modal-body">
-                        {% csrf_token %}
-                        <input type="hidden" name="type_input" value="expense">
-                        <div class="mb-3"><label class="form-label">Tarih</label> {{ form.date }}</div>
-                        <div class="mb-3"><label class="form-label">Açıklama</label> {{ form.title }}</div>
-                        <div class="mb-3"><label class="form-label">Tutar</label> {{ form.amount }}</div>
-                        <div class="mb-3"><label class="form-label">Kategori</label> {{ form.category }}</div>
-                        <div class="mb-3"><label class="form-label">Taksit (Yoksa 0)</label>
-                            {{ form.installment_count }}
-                        </div>
-                        <div class="mb-3 bg-light p-3 rounded d-flex align-items-center">
-                            {{ form.is_recurring }}
-                            <label class="form-check-label ms-2" for="id_is_recurring">
-                                <strong>Her Ay Tekrarla</strong> <small class="text-muted">(Kira, Abonelik vb.)</small>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-danger">Kaydet</button>
-                    </div>
-                </form>
+    <!-- Pie Chart -->
+    <div class="col-lg-5">
+        <div class="chart-container">
+            <h5 class="mb-4"><i class="fas fa-chart-pie me-2" style="color: var(--primary-start);"></i>Kategori Dağılımı
+            </h5>
+            {% if category_values %}
+            <canvas id="categoryChart" style="max-height: 350px;"></canvas>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-chart-pie fa-3x text-muted opacity-25 mb-3"></i>
+                <p class="text-muted">Bu ay için harcama verisi yok</p>
             </div>
+            {% endif %}
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="incomeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content" style="border-radius: 20px; overflow: hidden;">
-                <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #34d399); color: white;">
-                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Gelir Girişi</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post">
-                    <div class="modal-body">
-                        {% csrf_token %}
-                        <input type="hidden" name="type_input" value="income">
-                        <div class="mb-3"><label class="form-label">Tarih</label> {{ form.date }}</div>
-                        <div class="mb-3"><label class="form-label">Açıklama</label> {{ form.title }}</div>
-                        <div class="mb-3"><label class="form-label">Tutar</label> {{ form.amount }}</div>
-                        <div class="mb-3"><label class="form-label">Kategori</label> {{ form.category }}</div>
-                        <div class="mb-3"><label class="form-label">Taksit (Yoksa 0)</label>
-                            {{ form.installment_count }}
-                        </div>
-
-                        <div class="mb-3 bg-light p-3 rounded d-flex align-items-center">
-                            {{ form.is_recurring }}
-                            <label class="form-check-label ms-2" for="id_is_recurring">
-                                <strong>Her Ay Tekrarla</strong> <small class="text-muted">(Maaş, Prim vb.)</small>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-success">Kaydet</button>
-                    </div>
-                </form>
+<!-- Expense Modal -->
+<div class="modal fade" id="expenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header modal-header-danger">
+                <h5 class="modal-title"><i class="fas fa-minus-circle me-2"></i>Harcama Girişi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
+            <form method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" name="type_input" value="expense">
+                    <div class="mb-3"><label class="form-label">Tarih</label> {{ form.date }}</div>
+                    <div class="mb-3"><label class="form-label">Açıklama</label> {{ form.title }}</div>
+                    <div class="mb-3"><label class="form-label">Tutar</label> {{ form.amount }}</div>
+                    <div class="mb-3"><label class="form-label">Kategori</label> {{ form.category }}</div>
+                    <div class="mb-3"><label class="form-label">Taksit (Yoksa 0)</label> {{ form.installment_count }}
+                    </div>
+                    <div class="mb-3 bg-light p-3 rounded d-flex align-items-center">
+                        {{ form.is_recurring }}
+                        <label class="form-check-label ms-2" for="id_is_recurring">
+                            <strong>Her Ay Tekrarla</strong> <small class="text-muted">(Kira, Abonelik vb.)</small>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">Kaydet</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- html2pdf.js for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Income Modal -->
+<div class="modal fade" id="incomeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header modal-header-success">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Gelir Girişi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" name="type_input" value="income">
+                    <div class="mb-3"><label class="form-label">Tarih</label> {{ form.date }}</div>
+                    <div class="mb-3"><label class="form-label">Açıklama</label> {{ form.title }}</div>
+                    <div class="mb-3"><label class="form-label">Tutar</label> {{ form.amount }}</div>
+                    <div class="mb-3"><label class="form-label">Kategori</label> {{ form.category }}</div>
+                    <div class="mb-3"><label class="form-label">Taksit (Yoksa 0)</label> {{ form.installment_count }}
+                    </div>
+                    <div class="mb-3 bg-light p-3 rounded d-flex align-items-center">
+                        {{ form.is_recurring }}
+                        <label class="form-check-label ms-2" for="id_is_recurring">
+                            <strong>Her Ay Tekrarla</strong> <small class="text-muted">(Maaş, Prim vb.)</small>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <script>
-        const ctx = document.getElementById('financeChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: {{ chart_labels| safe }},
-            datasets: [
-            {
-                label: 'Gelir',
-                data: {{ chart_income| safe }},
-            backgroundColor: 'rgba(16, 185, 129, 0.7)',
-            borderColor: 'rgba(16, 185, 129, 1)',
-            borderWidth: 2,
-            borderRadius: 10
-                    },
-            {
-                label: 'Gider',
-                data: {{ chart_expense| safe }},
-            backgroundColor: 'rgba(239, 68, 68, 0.7)',
-            borderColor: 'rgba(239, 68, 68, 1)',
-            borderWidth: 2,
-            borderRadius: 10
-                    }
-        ]
-            },
-            options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        label: function (context) {
-                            return context.dataset.label + ': ' + context.raw.toLocaleString('tr-TR') + ' ₺';
-                        }
-                    }
-                }
-            },
-            scales: { y: { beginAtZero: true } }
-        }
-        });
-
-        // Kategori Dağılımı Pie Chart
-        {% if category_values %}
-        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-        new Chart(categoryCtx, {
-            type: 'doughnut',
-            data: {
-                labels: {{ category_labels| safe }},
-            datasets: [{
-                data: {{ category_values| safe }},
-            backgroundColor: {{ pie_colors| safe }},
-            borderWidth: 0,
-            hoverOffset: 10
-                }]
-            },
-            options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        usePointStyle: true,
-                        font: { size: 11 }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function (context) {
-                            const value = context.raw;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return context.label + ': ' + value.toLocaleString('tr-TR') + ' ₺ (' + percentage + '%)';
-                        }
-                    }
-                }
-            },
-            cutout: '60%'
-        }
-        });
-        {% endif %}
-
-        // ============================================
-        // PDF EXPORT FUNCTION - Kredi Kartı Ekstresi Tarzı
-        // ============================================
-        async function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            let yPos = 15;
-
-            // Turkce karakter ve HTML entity duzeltme fonksiyonu (PDF icin)
-            function fixTurkish(text) {
-                if (!text) return text;
-                // Once HTML entity'leri decode et
-                let decoded = String(text)
-                    .replace(/&amp;/g, '&')
-                    .replace(/&lt;/g, '<')
-                    .replace(/&gt;/g, '>')
-                    .replace(/&quot;/g, '"')
-                    .replace(/&#39;/g, "'");
-                // Sonra Turkce karakterleri ASCII'ye donustur
-                return decoded
-                    .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
-                    .replace(/ü/g, 'u').replace(/Ü/g, 'U')
-                    .replace(/ş/g, 's').replace(/Ş/g, 'S')
-                    .replace(/ı/g, 'i').replace(/İ/g, 'I')
-                    .replace(/ö/g, 'o').replace(/Ö/g, 'O')
-                    .replace(/ç/g, 'c').replace(/Ç/g, 'C')
-                    .replace(/₺/g, 'TL');
-            }
-
-            const mainFont = 'helvetica';
-
-            // Renkler
-            const primaryColor = [102, 126, 234];
-            const successColor = [16, 185, 129];
-            const dangerColor = [239, 68, 68];
-            const grayColor = [100, 116, 139];
-
-            // ===== HEADER =====
-            pdf.setFillColor(...primaryColor);
-            pdf.rect(0, 0, pageWidth, 35, 'F');
-
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(22);
-            pdf.setFont(mainFont, 'bold');
-            pdf.text(fixTurkish('HESAP EKSTRESI'), pageWidth / 2, 18, { align: 'center' });
-
-            pdf.setFontSize(11);
-            pdf.setFont(mainFont, 'normal');
-            pdf.text(fixTurkish('{{ selected_date|date:"F Y" }}'), pageWidth / 2, 28, { align: 'center' });
-
-            yPos = 45;
-
-            // ===== OZET KUTUSU =====
-            pdf.setFillColor(248, 250, 252);
-            pdf.roundedRect(15, yPos, pageWidth - 30, 40, 3, 3, 'F');
-
-            // 3 sutun icin genislik hesapla
-            const boxWidth = (pageWidth - 30) / 3;
-            const col1X = 15 + boxWidth / 2;
-            const col2X = 15 + boxWidth + boxWidth / 2;
-            const col3X = 15 + boxWidth * 2 + boxWidth / 2;
-
-            // Gelir (Sol)
-            pdf.setTextColor(...grayColor);
-            pdf.setFontSize(9);
-            pdf.setFont(mainFont, 'normal');
-            pdf.text('TOPLAM GELIR', col1X, yPos + 12, { align: 'center' });
-            pdf.setTextColor(...successColor);
-            pdf.setFontSize(16);
-            pdf.setFont(mainFont, 'bold');
-            pdf.text('+{{ total_income|floatformat:0 }} TL', col1X, yPos + 26, { align: 'center' });
-
-            // Gider (Orta)
-            pdf.setTextColor(...grayColor);
-            pdf.setFontSize(9);
-            pdf.setFont(mainFont, 'normal');
-            pdf.text('TOPLAM GIDER', col2X, yPos + 12, { align: 'center' });
-            pdf.setTextColor(...dangerColor);
-            pdf.setFontSize(16);
-            pdf.setFont(mainFont, 'bold');
-            pdf.text('-{{ total_expense|floatformat:0 }} TL', col2X, yPos + 26, { align: 'center' });
-
-            // Net (Sag)
-            pdf.setTextColor(...grayColor);
-            pdf.setFontSize(9);
-            pdf.setFont(mainFont, 'normal');
-            pdf.text('NET BAKIYE', col3X, yPos + 12, { align: 'center' });
-            pdf.setTextColor(...primaryColor);
-            pdf.setFontSize(16);
-            pdf.setFont(mainFont, 'bold');
-            pdf.text('{{ balance|floatformat:0 }} TL', col3X, yPos + 26, { align: 'center' });
-
-            yPos += 50;
-
-            // ===== İŞLEM LİSTESİ BAŞLIĞI =====
-            pdf.setFillColor(...primaryColor);
-            pdf.rect(15, yPos, pageWidth - 30, 8, 'F');
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(10);
-            pdf.setFont(mainFont, 'bold');
-            pdf.text(fixTurkish('TARIH'), 20, yPos + 5.5);
-            pdf.text(fixTurkish('ACIKLAMA'), 55, yPos + 5.5);
-            pdf.text(fixTurkish('KATEGORI'), 120, yPos + 5.5);
-            pdf.text('TUTAR', pageWidth - 25, yPos + 5.5, { align: 'right' });
-
-            yPos += 12;
-
-            // ===== İŞLEMLER =====
-            const transactions = [
-                {% for item in transactions %}
+<script>
+    const ctx = document.getElementById('financeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_labels| safe }},
+        datasets: [
         {
-            date: '{{ item.date|date:"d.m.Y" }}',
-                title: '{{ item.title|escapejs }}',
-                    category: '{{ item.get_category_display }}',
-                        amount: parseFloat('{{ item.amount|stringformat:"f" }}'),
-                            type: '{{ item.transaction_type }}'
-        } {% if not forloop.last %}, {% endif %}
-        {% endfor %}
-            ];
-
-        pdf.setFontSize(9);
-        transactions.forEach((t, i) => {
-            if (yPos > pageHeight - 40) {
-                pdf.addPage();
-                yPos = 20;
+            label: 'Gelir',
+            data: {{ chart_income| safe }},
+        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+        borderColor: 'rgba(16, 185, 129, 1)',
+        borderWidth: 2,
+        borderRadius: 10
+                },
+        {
+            label: 'Gider',
+            data: {{ chart_expense| safe }},
+        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+        borderColor: 'rgba(239, 68, 68, 1)',
+        borderWidth: 2,
+        borderRadius: 10
+                }
+    ]
+        },
+        options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: function (context) {
+                        return context.dataset.label + ': ' + context.raw.toLocaleString('tr-TR') + ' ₺';
+                    }
+                }
             }
+        },
+        scales: { y: { beginAtZero: true } }
+    }
+    });
 
-            // Alternatif satır rengi
-            if (i % 2 === 0) {
-                pdf.setFillColor(248, 250, 252);
-                pdf.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
+    {% if category_values %}
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_labels| safe }},
+        datasets: [{
+            data: {{ category_values| safe }},
+        backgroundColor: {{ pie_colors| safe }},
+        borderWidth: 0,
+        hoverOffset: 10
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 15,
+                    usePointStyle: true,
+                    font: { size: 11 }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function (context) {
+                        const value = context.raw;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return context.label + ': ' + value.toLocaleString('tr-TR') + ' ₺ (' + percentage + '%)';
+                    }
+                }
             }
+        },
+        cutout: '60%'
+    }
+    });
+    {% endif %}
 
-            pdf.setTextColor(50, 50, 50);
-            pdf.setFont(mainFont, 'normal');
-            pdf.text(t.date, 20, yPos);
+    async function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        let yPos = 15;
 
-            // Başlık (uzunsa kes)
-            let title = t.title.length > 30 ? t.title.substring(0, 27) + '...' : t.title;
-            pdf.text(fixTurkish(title), 55, yPos);
+        function fixTurkish(text) {
+            if (!text) return text;
+            let decoded = String(text)
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'");
+            return decoded
+                .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+                .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+                .replace(/ş/g, 's').replace(/Ş/g, 'S')
+                .replace(/ı/g, 'i').replace(/İ/g, 'I')
+                .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+                .replace(/ç/g, 'c').replace(/Ç/g, 'C')
+                .replace(/₺/g, 'TL');
+        }
 
-            // Kategori
-            pdf.setTextColor(...grayColor);
-            pdf.text(fixTurkish(t.category || 'Genel'), 120, yPos);
+        const mainFont = 'helvetica';
+        const primaryColor = [102, 126, 234];
+        const successColor = [16, 185, 129];
+        const dangerColor = [239, 68, 68];
+        const grayColor = [100, 116, 139];
 
-            // Tutar
-            if (t.type === 'income') {
-                pdf.setTextColor(...successColor);
-                pdf.text('+' + t.amount.toLocaleString('tr-TR') + ' TL', pageWidth - 25, yPos, { align: 'right' });
-            } else {
-                pdf.setTextColor(...dangerColor);
-                pdf.text('-' + t.amount.toLocaleString('tr-TR') + ' TL', pageWidth - 25, yPos, { align: 'right' });
-            }
-
-            yPos += 8;
-        });
-
-        // ===== GRAFİKLER =====
-        // Yeni sayfa başlat
-        pdf.addPage();
-        yPos = 15;
-
-        // Header banner
         pdf.setFillColor(...primaryColor);
-        pdf.rect(0, 0, pageWidth, 25, 'F');
+        pdf.rect(0, 0, pageWidth, 35, 'F');
+
         pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(16);
+        pdf.setFontSize(22);
         pdf.setFont(mainFont, 'bold');
-        pdf.text('GRAFIK ANALIZI', pageWidth / 2, 16, { align: 'center' });
+        pdf.text(fixTurkish('HESAP EKSTRESI'), pageWidth / 2, 18, { align: 'center' });
 
-        yPos = 35;
+        pdf.setFontSize(11);
+        pdf.setFont(mainFont, 'normal');
+        pdf.text(fixTurkish('{{ selected_date|date:"F Y" }}'), pageWidth / 2, 28, { align: 'center' });
 
-        // ===== GRAFIK 1: Gelir/Gider Bar Chart =====
+        yPos = 45;
+
         pdf.setFillColor(248, 250, 252);
-        pdf.roundedRect(15, yPos, pageWidth - 30, 95, 4, 4, 'F');
+        pdf.roundedRect(15, yPos, pageWidth - 30, 40, 3, 3, 'F');
 
-        // Baslik
-        pdf.setTextColor(...primaryColor);
-        pdf.setFontSize(12);
-        pdf.setFont(mainFont, 'bold');
-        pdf.text('Aylik Gelir - Gider Dagilimi', pageWidth / 2, yPos + 12, { align: 'center' });
-
-        // Bar chart'i yakala - yuksek cozunurluk
-        try {
-            const barChart = document.getElementById('financeChart');
-            if (barChart) {
-                const barCanvas = await html2canvas(barChart, {
-                    scale: 6,
-                    backgroundColor: '#ffffff',
-                    useCORS: true,
-                    logging: false
-                });
-                const barImg = barCanvas.toDataURL('image/png');
-                pdf.addImage(barImg, 'PNG', 20, yPos + 18, pageWidth - 40, 70);
-            }
-        } catch (e) {
-            console.log('Bar chart export error:', e);
-        }
-
-        yPos += 105;
-
-        // ===== GRAFIK 2: Kategori Pie Chart =====
-        pdf.setFillColor(248, 250, 252);
-        pdf.roundedRect(15, yPos, pageWidth - 30, 95, 4, 4, 'F');
-
-        // Baslik
-        pdf.setTextColor(...primaryColor);
-        pdf.setFontSize(12);
-        pdf.setFont(mainFont, 'bold');
-        pdf.text('Harcama Kategorileri Dagilimi', pageWidth / 2, yPos + 12, { align: 'center' });
-
-        // Pie chart'i yakala - yuksek cozunurluk
-        try {
-            const pieChart = document.getElementById('categoryChart');
-            if (pieChart) {
-                const pieCanvas = await html2canvas(pieChart, {
-                    scale: 6,
-                    backgroundColor: '#ffffff',
-                    useCORS: true,
-                    logging: false
-                });
-                const pieImg = pieCanvas.toDataURL('image/png');
-                pdf.addImage(pieImg, 'PNG', 35, yPos + 18, pageWidth - 70, 70);
-            }
-        } catch (e) {
-            console.log('Pie chart export error:', e);
-        }
-
-        yPos += 105;
-
-        // Alt bilgi kutusu
-        pdf.setFillColor(240, 245, 250);
-        pdf.roundedRect(15, yPos, pageWidth - 30, 20, 4, 4, 'F');
+        const boxWidth = (pageWidth - 30) / 3;
+        const col1X = 15 + boxWidth / 2;
+        const col2X = 15 + boxWidth + boxWidth / 2;
+        const col3X = 15 + boxWidth * 2 + boxWidth / 2;
 
         pdf.setTextColor(...grayColor);
         pdf.setFontSize(9);
         pdf.setFont(mainFont, 'normal');
-        pdf.text(fixTurkish('Bu rapor otomatik olarak olusturulmustur.'), pageWidth / 2, yPos + 13, { align: 'center' });
+        pdf.text('TOPLAM GELIR', col1X, yPos + 12, { align: 'center' });
+        pdf.setTextColor(...successColor);
+        pdf.setFontSize(16);
+        pdf.setFont(mainFont, 'bold');
+        pdf.text('+{{ total_income|floatformat:0 }} TL', col1X, yPos + 26, { align: 'center' });
 
-        // ===== FOOTER =====
-        const totalPages = pdf.internal.getNumberOfPages();
-        for (let i = 1; i <= totalPages; i++) {
-            pdf.setPage(i);
-            pdf.setFontSize(8);
-            pdf.setTextColor(...grayColor);
-            // Tarih formatla (GG.AA.YYYY)
-            const today = new Date();
-            const dateStr = today.getDate().toString().padStart(2, '0') + '.' +
-                (today.getMonth() + 1).toString().padStart(2, '0') + '.' +
-                today.getFullYear();
-            pdf.text(
-                'Olusturma Tarihi: ' + dateStr + ' | Sayfa ' + i + '/' + totalPages,
-                pageWidth / 2,
-                pageHeight - 10,
-                { align: 'center' }
-            );
+        pdf.setTextColor(...grayColor);
+        pdf.setFontSize(9);
+        pdf.setFont(mainFont, 'normal');
+        pdf.text('TOPLAM GIDER', col2X, yPos + 12, { align: 'center' });
+        pdf.setTextColor(...dangerColor);
+        pdf.setFontSize(16);
+        pdf.setFont(mainFont, 'bold');
+        pdf.text('-{{ total_expense|floatformat:0 }} TL', col2X, yPos + 26, { align: 'center' });
+
+        pdf.setTextColor(...grayColor);
+        pdf.setFontSize(9);
+        pdf.setFont(mainFont, 'normal');
+        pdf.text('NET BAKIYE', col3X, yPos + 12, { align: 'center' });
+        pdf.setTextColor(...primaryColor);
+        pdf.setFontSize(16);
+        pdf.setFont(mainFont, 'bold');
+        pdf.text('{{ balance|floatformat:0 }} TL', col3X, yPos + 26, { align: 'center' });
+
+        yPos += 50;
+
+        pdf.setFillColor(...primaryColor);
+        pdf.rect(15, yPos, pageWidth - 30, 8, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.setFont(mainFont, 'bold');
+        pdf.text(fixTurkish('TARIH'), 20, yPos + 5.5);
+        pdf.text(fixTurkish('ACIKLAMA'), 55, yPos + 5.5);
+        pdf.text(fixTurkish('KATEGORI'), 120, yPos + 5.5);
+        pdf.text('TUTAR', pageWidth - 25, yPos + 5.5, { align: 'right' });
+
+        yPos += 12;
+
+        const transactions = [
+            {% for item in transactions %}
+    {
+        date: '{{ item.date|date:"d.m.Y" }}',
+            title: '{{ item.title|escapejs }}',
+                category: '{{ item.get_category_display }}',
+                    amount: parseFloat('{{ item.amount|stringformat:"f" }}'),
+                        type: '{{ item.transaction_type }}'
+    } {% if not forloop.last %}, {% endif %}
+    {% endfor %}
+        ];
+
+    pdf.setFontSize(9);
+    transactions.forEach((t, i) => {
+        if (yPos > pageHeight - 40) {
+            pdf.addPage();
+            yPos = 20;
         }
 
-        // PDF'i kaydet
-        pdf.save(`Hesap_Ekstresi_{{ selected_date|date:"Y_m" }}.pdf`);
+        if (i % 2 === 0) {
+            pdf.setFillColor(248, 250, 252);
+            pdf.rect(15, yPos - 4, pageWidth - 30, 8, 'F');
         }
-    </script>
 
-</body>
+        pdf.setTextColor(50, 50, 50);
+        pdf.setFont(mainFont, 'normal');
+        pdf.text(t.date, 20, yPos);
 
-</html>
+        let title = t.title.length > 30 ? t.title.substring(0, 27) + '...' : t.title;
+        pdf.text(fixTurkish(title), 55, yPos);
+
+        pdf.setTextColor(...grayColor);
+        pdf.text(fixTurkish(t.category || 'Genel'), 120, yPos);
+
+        if (t.type === 'income') {
+            pdf.setTextColor(...successColor);
+            pdf.text('+' + t.amount.toLocaleString('tr-TR') + ' TL', pageWidth - 25, yPos, { align: 'right' });
+        } else {
+            pdf.setTextColor(...dangerColor);
+            pdf.text('-' + t.amount.toLocaleString('tr-TR') + ' TL', pageWidth - 25, yPos, { align: 'right' });
+        }
+
+        yPos += 8;
+    });
+
+    pdf.addPage();
+    yPos = 15;
+
+    pdf.setFillColor(...primaryColor);
+    pdf.rect(0, 0, pageWidth, 25, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(16);
+    pdf.setFont(mainFont, 'bold');
+    pdf.text('GRAFIK ANALIZI', pageWidth / 2, 16, { align: 'center' });
+
+    yPos = 35;
+
+    pdf.setFillColor(248, 250, 252);
+    pdf.roundedRect(15, yPos, pageWidth - 30, 95, 4, 4, 'F');
+
+    pdf.setTextColor(...primaryColor);
+    pdf.setFontSize(12);
+    pdf.setFont(mainFont, 'bold');
+    pdf.text('Aylik Gelir - Gider Dagilimi', pageWidth / 2, yPos + 12, { align: 'center' });
+
+    try {
+        const barChart = document.getElementById('financeChart');
+        if (barChart) {
+            const barCanvas = await html2canvas(barChart, {
+                scale: 6,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false
+            });
+            const barImg = barCanvas.toDataURL('image/png');
+            pdf.addImage(barImg, 'PNG', 20, yPos + 18, pageWidth - 40, 70);
+        }
+    } catch (e) {
+        console.log('Bar chart export error:', e);
+    }
+
+    yPos += 105;
+
+    pdf.setFillColor(248, 250, 252);
+    pdf.roundedRect(15, yPos, pageWidth - 30, 95, 4, 4, 'F');
+
+    pdf.setTextColor(...primaryColor);
+    pdf.setFontSize(12);
+    pdf.setFont(mainFont, 'bold');
+    pdf.text('Harcama Kategorileri Dagilimi', pageWidth / 2, yPos + 12, { align: 'center' });
+
+    try {
+        const pieChart = document.getElementById('categoryChart');
+        if (pieChart) {
+            const pieCanvas = await html2canvas(pieChart, {
+                scale: 6,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false
+            });
+            const pieImg = pieCanvas.toDataURL('image/png');
+            pdf.addImage(pieImg, 'PNG', 35, yPos + 18, pageWidth - 70, 70);
+        }
+    } catch (e) {
+        console.log('Pie chart export error:', e);
+    }
+
+    yPos += 105;
+
+    pdf.setFillColor(240, 245, 250);
+    pdf.roundedRect(15, yPos, pageWidth - 30, 20, 4, 4, 'F');
+
+    pdf.setTextColor(...grayColor);
+    pdf.setFontSize(9);
+    pdf.setFont(mainFont, 'normal');
+    pdf.text('Bu rapor otomatik olarak olusturulmustur.', pageWidth / 2, yPos + 8, { align: 'center' });
+    pdf.text(fixTurkish('Olusturma Tarihi: ' + new Date().toLocaleDateString('tr-TR')), pageWidth / 2, yPos + 14, { align: 'center' });
+
+    pdf.save('hesap-ekstresi-{{ selected_date|date:"Y-m" }}.pdf');
+    }
+</script>
+{% endblock %}

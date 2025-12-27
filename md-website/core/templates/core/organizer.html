@@ -1,1158 +1,1027 @@
-<!DOCTYPE html>
-<html lang="tr">
+{% extends 'core/base.html' %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% load static %}
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon.png' %}">
-    <title>Organizer - Notlar & Takvim</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Quill.js Rich Text Editor -->
-    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
-    <!-- FullCalendar -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+{% block title %}Organizer - Notlar & Takvim{% endblock %}
+{% block brand_title %}Kişisel Asistan{% endblock %}
 
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+{% block main_class %}container-fluid py-4{% endblock %}
 
-        .navbar-custom {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
+{% block extra_css %}
+<!-- Quill.js Rich Text Editor -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<!-- FullCalendar -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
 
-        .main-container {
-            padding: 30px 0;
-        }
+<style>
+    /* ====================== NOTES SECTION ====================== */
+    .notes-section {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        box-shadow: 0 10px 40px var(--shadow-color);
+        height: calc(100vh - 150px);
+        display: flex;
+        flex-direction: column;
+    }
 
-        /* ====================== NOTES SECTION ====================== */
-        .notes-section {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            height: calc(100vh - 150px);
-            display: flex;
-            flex-direction: column;
-        }
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-lg);
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--border-color);
+    }
 
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
+    .section-header h2 {
+        margin: 0;
+        color: var(--text-primary);
+        font-weight: var(--font-weight-bold);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-        .section-header h2 {
-            margin: 0;
-            color: #2d3748;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .section-header h2 i {
+        color: var(--primary-start);
+    }
 
-        .section-header h2 i {
-            color: #667eea;
-        }
+    .btn-add {
+        background: var(--primary-gradient);
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: var(--radius-md);
+        font-weight: var(--font-weight-semibold);
+        transition: all var(--transition-base);
+        cursor: pointer;
+    }
 
-        .btn-add {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
+    .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
 
-        .btn-add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-            color: white;
-        }
+    .notes-list {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 15px;
+    }
 
-        .notes-list {
-            flex: 1;
-            overflow-y: auto;
-            margin-bottom: 15px;
-        }
+    .note-item {
+        background: var(--bg-card-secondary);
+        border-radius: var(--radius-md);
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        border-left: 4px solid var(--primary-start);
+    }
 
-        .note-item {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-left: 4px solid #667eea;
-        }
+    .note-item:hover {
+        background: var(--border-color);
+        transform: translateX(5px);
+    }
 
-        .note-item:hover {
-            background: #e9ecef;
-            transform: translateX(5px);
-        }
+    .note-item.active {
+        background: var(--primary-gradient);
+        color: white;
+    }
 
-        .note-item.active {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
+    .note-item.active .note-date,
+    .note-item.active .note-preview {
+        color: rgba(255, 255, 255, 0.8);
+    }
 
-        .note-item.active .note-date {
-            color: rgba(255, 255, 255, 0.8);
-        }
+    .note-item.pinned {
+        border-left-color: #f6ad55;
+    }
 
-        .note-item.pinned {
-            border-left-color: #f6ad55;
-        }
+    .note-title {
+        font-weight: var(--font-weight-semibold);
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-primary);
+    }
 
-        .note-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+    .note-item.active .note-title {
+        color: white;
+    }
 
-        .note-title .pin-icon {
-            color: #f6ad55;
-        }
+    .note-title .pin-icon {
+        color: #f6ad55;
+    }
 
-        .note-preview {
-            font-size: 0.85rem;
-            color: #718096;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+    .note-preview {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-        .note-date {
-            font-size: 0.75rem;
-            color: #a0aec0;
-            margin-top: 5px;
-        }
+    .note-date {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 5px;
+    }
 
-        /* Note Editor */
-        .note-editor-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            overflow: hidden;
-        }
+    /* Note Editor */
+    .note-editor-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: var(--bg-card);
+    }
 
-        .note-editor-header {
-            padding: 15px;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .note-editor-header {
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-card);
+    }
 
-        .note-title-input {
-            border: none;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #2d3748;
-            width: 100%;
-            outline: none;
-        }
+    .note-title-input {
+        border: none;
+        font-size: 1.3rem;
+        font-weight: var(--font-weight-bold);
+        color: var(--text-primary);
+        width: 100%;
+        outline: none;
+        background: transparent;
+    }
 
-        .note-actions {
-            display: flex;
-            gap: 10px;
-        }
+    .note-title-input::placeholder {
+        color: var(--text-muted);
+    }
 
-        .note-actions button {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            color: #718096;
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
+    .note-actions {
+        display: flex;
+        gap: 10px;
+    }
 
-        .note-actions button:hover {
-            color: #667eea;
-        }
+    .note-actions button {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: color var(--transition-base);
+    }
 
-        .note-actions .delete-btn:hover {
-            color: #e53e3e;
-        }
+    .note-actions button:hover {
+        color: var(--primary-start);
+    }
 
-        #editor-container {
-            flex: 1;
-            min-height: 200px;
-        }
+    .note-actions .delete-btn:hover {
+        color: var(--danger-start);
+    }
 
-        .ql-container {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 1rem;
-        }
+    #editor-container {
+        flex: 1;
+        min-height: 200px;
+    }
 
-        .ql-editor {
-            min-height: 200px;
-        }
+    .ql-container {
+        font-family: var(--font-sans);
+        font-size: 1rem;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border: none;
+    }
 
-        /* ====================== CALENDAR SECTION ====================== */
+    .ql-toolbar {
+        background: var(--bg-card-secondary);
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .ql-editor {
+        min-height: 200px;
+    }
+
+    /* ====================== CALENDAR SECTION ====================== */
+    .calendar-section {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        box-shadow: 0 10px 40px var(--shadow-color);
+        height: calc(100vh - 150px);
+        overflow: hidden;
+    }
+
+    #calendar {
+        height: calc(100% - 70px);
+    }
+
+    .fc {
+        font-family: var(--font-sans);
+    }
+
+    .fc-toolbar-title {
+        font-size: 1.3rem !important;
+        font-weight: var(--font-weight-bold) !important;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        padding: 8px 20px;
+        border-radius: var(--radius-md);
+    }
+
+    .fc-toolbar-title:hover {
+        background: rgba(102, 126, 234, 0.15);
+        color: var(--primary-start);
+    }
+
+    .fc-toolbar-title::after {
+        content: ' ▼';
+        font-size: 0.7em;
+        opacity: 0.6;
+    }
+
+    .fc-button {
+        background: var(--primary-gradient) !important;
+        border: none !important;
+        border-radius: var(--radius-sm) !important;
+        padding: 8px 15px !important;
+    }
+
+    .fc-button:hover {
+        opacity: 0.9;
+    }
+
+    .fc-event {
+        border: none;
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-weight: var(--font-weight-semibold);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .fc-event:hover {
+        transform: scale(1.02);
+        box-shadow: 0 3px 10px var(--shadow-color);
+        z-index: 10;
+    }
+
+    .fc-daygrid-event {
+        margin: 2px 4px !important;
+    }
+
+    .fc-daygrid-day:hover {
+        background: var(--bg-card-secondary);
+    }
+
+    .fc-day-today {
+        background: rgba(102, 126, 234, 0.1) !important;
+    }
+
+    /* ====================== MODALS ====================== */
+    .form-control,
+    .form-select {
+        border-radius: var(--radius-md);
+        border: 2px solid var(--border-color);
+        padding: 12px 15px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-start);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    }
+
+    .color-options {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .color-option {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 3px solid transparent;
+        transition: all var(--transition-base);
+    }
+
+    .color-option:hover,
+    .color-option.selected {
+        transform: scale(1.1);
+        border-color: var(--text-primary);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 50px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 1.1rem;
+    }
+
+    /* Date Picker Modal */
+    .month-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 60px);
+        gap: 10px;
+    }
+
+    .year-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 60px);
+        gap: 10px;
+        min-height: 200px;
+    }
+
+    .month-btn,
+    .year-btn {
+        width: 60px;
+        height: 45px;
+        border: 2px solid var(--border-color);
+        background: var(--bg-card);
+        border-radius: var(--radius-md);
+        font-weight: var(--font-weight-semibold);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+    }
+
+    .month-btn:hover,
+    .year-btn:hover {
+        border-color: var(--primary-start);
+        background: rgba(102, 126, 234, 0.1);
+        color: var(--primary-start);
+        transform: translateY(-2px);
+    }
+
+    .month-btn.active,
+    .year-btn.active {
+        background: var(--primary-gradient);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .year-nav {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+        padding: 10px;
+        background: rgba(102, 126, 234, 0.05);
+        border-radius: var(--radius-md);
+    }
+
+    .year-nav button {
+        background: var(--primary-gradient);
+        border: none;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .year-nav button:hover {
+        transform: scale(1.15);
+        box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+    }
+
+    .year-nav span {
+        font-weight: var(--font-weight-bold);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        min-width: 100px;
+        text-align: center;
+    }
+
+    .date-picker-content {
+        display: flex;
+        gap: 40px;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    .date-picker-section h6 {
+        text-align: center;
+        color: var(--primary-start);
+        font-weight: var(--font-weight-bold);
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+        font-size: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+
+        .notes-section,
         .calendar-section {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            height: calc(100vh - 150px);
-            overflow: hidden;
-        }
-
-        #calendar {
-            height: calc(100% - 70px);
-        }
-
-        .fc {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .fc-toolbar-title {
-            font-size: 1.3rem !important;
-            font-weight: 700 !important;
-            color: #2d3748;
-        }
-
-        .fc-button {
-            background: linear-gradient(135deg, #667eea, #764ba2) !important;
-            border: none !important;
-            border-radius: 8px !important;
-            padding: 8px 15px !important;
-        }
-
-        .fc-button:hover {
-            opacity: 0.9;
-        }
-
-        .fc-event {
-            border: none;
-            border-radius: 6px;
-            padding: 3px 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .fc-event:hover {
-            transform: scale(1.02);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-            z-index: 10;
-        }
-
-        .fc-event-title {
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .fc-daygrid-event {
-            margin: 2px 4px !important;
-        }
-
-        .fc-daygrid-day-events {
-            min-height: 30px;
-        }
-
-        .fc-daygrid-day:hover {
-            background: #f7fafc;
-        }
-
-        .fc-day-today {
-            background: rgba(102, 126, 234, 0.1) !important;
-        }
-
-
-        /* ====================== EVENT MODAL ====================== */
-        .modal-header {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border-radius: 15px 15px 0 0;
-        }
-
-        .modal-content {
-            border: none;
-            border-radius: 15px;
-        }
-
-        .form-control,
-        .form-select {
-            border-radius: 10px;
-            border: 2px solid #e2e8f0;
-            padding: 12px 15px;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-
-        .color-options {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .color-option {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .color-option:hover,
-        .color-option.selected {
-            transform: scale(1.1);
-            border-color: #2d3748;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 50px 20px;
-            color: #a0aec0;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
+            height: auto;
+            min-height: 500px;
             margin-bottom: 20px;
-            opacity: 0.5;
         }
+    }
+</style>
+{% endblock %}
 
-        .empty-state p {
-            font-size: 1.1rem;
-        }
-
-        /* Responsive */
-        @media (max-width: 992px) {
-
-            .notes-section,
-            .calendar-section {
-                height: auto;
-                min-height: 500px;
-                margin-bottom: 20px;
-            }
-        }
-
-        /* ====================== DATE PICKER MODAL ====================== */
-        .fc-toolbar-title {
-            cursor: pointer;
-            transition: all 0.3s ease;
-            padding: 8px 20px;
-            border-radius: 12px;
-            position: relative;
-        }
-
-        .fc-toolbar-title:hover {
-            background: rgba(102, 126, 234, 0.15);
-            color: #667eea;
-        }
-
-        .fc-toolbar-title::after {
-            content: ' ▼';
-            font-size: 0.7em;
-            opacity: 0.6;
-        }
-
-        #datePickerModal .modal-dialog {
-            max-width: 500px;
-        }
-
-        #datePickerModal .modal-body {
-            padding: 30px;
-        }
-
-        .date-picker-content {
-            display: flex;
-            gap: 40px;
-            justify-content: center;
-            align-items: flex-start;
-        }
-
-        .date-picker-section {
-            flex: 0 0 auto;
-        }
-
-        .date-picker-section h6 {
-            text-align: center;
-            color: #667eea;
-            font-weight: 700;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid rgba(102, 126, 234, 0.2);
-            font-size: 1rem;
-        }
-
-        .month-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 60px);
-            gap: 10px;
-        }
-
-        .year-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 60px);
-            gap: 10px;
-            min-height: 200px;
-        }
-
-        .month-btn,
-        .year-btn {
-            width: 60px;
-            height: 45px;
-            border: 2px solid #e2e8f0;
-            background: white;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .month-btn:hover,
-        .year-btn:hover {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-            transform: translateY(-2px);
-        }
-
-        .month-btn.active,
-        .year-btn.active {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .year-nav {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding: 10px;
-            background: rgba(102, 126, 234, 0.05);
-            border-radius: 12px;
-        }
-
-        .year-nav button {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border: none;
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .year-nav button:hover {
-            transform: scale(1.15);
-            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
-        }
-
-        .year-nav span {
-            font-weight: 700;
-            color: #2d3748;
-            font-size: 0.95rem;
-            min-width: 100px;
-            text-align: center;
-        }
-    </style>
-</head>
-
-<body>
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
-                <i class="fas fa-home me-2" style="color: #667eea;"></i>Kişisel Asistan
-            </a>
-            <div class="navbar-nav ms-auto">
-                <span class="nav-item nav-link text-muted">
-                    <i class="fas fa-user me-1"></i> {{ user.username }}
-                </span>
-                <a class="nav-link text-danger" href="{% url 'logout' %}">
-                    <i class="fas fa-sign-out-alt"></i> Çıkış
-                </a>
+{% block content %}
+<div class="row px-3">
+    <!-- NOTES SECTION (Left) -->
+    <div class="col-lg-5 mb-4">
+        <div class="notes-section">
+            <div class="section-header">
+                <h2><i class="fas fa-sticky-note"></i> Notlarım</h2>
+                <button class="btn btn-add" onclick="createNewNote()">
+                    <i class="fas fa-plus me-1"></i> Yeni Not
+                </button>
             </div>
-        </div>
-    </nav>
 
-    <!-- MAIN CONTENT -->
-    <div class="container-fluid main-container">
-        <div class="row px-3">
-            <!-- NOTES SECTION (Left) -->
-            <div class="col-lg-5 mb-4">
-                <div class="notes-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-sticky-note"></i> Notlarım</h2>
-                        <button class="btn btn-add" onclick="createNewNote()">
-                            <i class="fas fa-plus me-1"></i> Yeni Not
+            <div class="notes-list" id="notesList">
+                {% for note in notes %}
+                <div class="note-item {% if note.is_pinned %}pinned{% endif %}" data-id="{{ note.id }}"
+                    onclick="selectNote({{ note.id }})">
+                    <div class="note-title">
+                        {% if note.is_pinned %}<i class="fas fa-thumbtack pin-icon"></i>{% endif %}
+                        {{ note.title }}
+                    </div>
+                    <div class="note-preview">{{ note.content|striptags|truncatewords:15 }}</div>
+                    <div class="note-date">{{ note.updated_at|date:"d.m.Y H:i" }}</div>
+                </div>
+                {% empty %}
+                <div class="empty-state" id="emptyNotesState">
+                    <i class="fas fa-sticky-note"></i>
+                    <p>Henüz not yok. Yeni bir not oluştur!</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Note Editor -->
+            <div class="note-editor-container" id="noteEditorContainer" style="display: none;">
+                <div class="note-editor-header">
+                    <input type="text" class="note-title-input" id="noteTitleInput" placeholder="Not başlığı..."
+                        onchange="saveCurrentNote()">
+                    <div class="note-actions">
+                        <button onclick="togglePin()" title="Sabitle">
+                            <i class="fas fa-thumbtack" id="pinIcon"></i>
+                        </button>
+                        <button class="delete-btn" onclick="deleteCurrentNote()" title="Sil">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
+                </div>
+                <div id="editor-container"></div>
+            </div>
+        </div>
+    </div>
 
-                    <div class="notes-list" id="notesList">
-                        {% for note in notes %}
-                        <div class="note-item {% if note.is_pinned %}pinned{% endif %}" data-id="{{ note.id }}"
-                            onclick="selectNote({{ note.id }})">
-                            <div class="note-title">
-                                {% if note.is_pinned %}<i class="fas fa-thumbtack pin-icon"></i>{% endif %}
-                                {{ note.title }}
-                            </div>
-                            <div class="note-preview">{{ note.content|striptags|truncatewords:15 }}</div>
-                            <div class="note-date">{{ note.updated_at|date:"d.m.Y H:i" }}</div>
+    <!-- CALENDAR SECTION (Right) -->
+    <div class="col-lg-7 mb-4">
+        <div class="calendar-section">
+            <div class="section-header">
+                <h2><i class="fas fa-calendar-alt"></i> Takvim</h2>
+                <button class="btn btn-add" data-bs-toggle="modal" data-bs-target="#eventModal">
+                    <i class="fas fa-plus me-1"></i> Etkinlik Ekle
+                </button>
+            </div>
+            <div id="calendar"></div>
+        </div>
+    </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header modal-header-gradient">
+                <h5 class="modal-title"><i class="fas fa-calendar-plus me-2"></i>Yeni Etkinlik</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="eventForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Etkinlik Adı</label>
+                        <input type="text" class="form-control" id="eventTitle" required
+                            placeholder="Örn: Doğum Günü Partisi">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Başlangıç Tarihi</label>
+                            <input type="date" class="form-control" id="eventStart" required>
                         </div>
-                        {% empty %}
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Bitiş Tarihi</label>
+                            <input type="date" class="form-control" id="eventEnd">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Etkinlik Türü</label>
+                        <select class="form-select" id="eventType">
+                            <option value="event">Etkinlik</option>
+                            <option value="reminder">Hatırlatıcı</option>
+                            <option value="birthday">Doğum Günü</option>
+                            <option value="special">Özel An</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Açıklama</label>
+                        <textarea class="form-control" id="eventDescription" rows="2"
+                            placeholder="Etkinlik detayları..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Renk</label>
+                        <div class="color-options">
+                            <div class="color-option selected" style="background: #667eea;" data-color="#667eea"></div>
+                            <div class="color-option" style="background: #48bb78;" data-color="#48bb78"></div>
+                            <div class="color-option" style="background: #ed8936;" data-color="#ed8936"></div>
+                            <div class="color-option" style="background: #e53e3e;" data-color="#e53e3e"></div>
+                            <div class="color-option" style="background: #9f7aea;" data-color="#9f7aea"></div>
+                            <div class="color-option" style="background: #38b2ac;" data-color="#38b2ac"></div>
+                            <div class="color-option" style="background: #ed64a6;" data-color="#ed64a6"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="eventRecurring">
+                        <label class="form-check-label fw-bold" for="eventRecurring">
+                            <i class="fas fa-sync-alt me-1"></i> Her Yıl Tekrarla
+                        </label>
+                        <small class="d-block text-muted">Bu etkinlik her yıl aynı tarihte gösterilir</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-add" onclick="saveEvent()">
+                    <i class="fas fa-save me-1"></i> Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EVENT DETAIL MODAL -->
+<div class="modal fade" id="eventDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header modal-header-gradient">
+                <h5 class="modal-title" id="eventDetailTitle"></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Tarih:</strong> <span id="eventDetailDate"></span></p>
+                <p><strong>Tür:</strong> <span id="eventDetailType"></span></p>
+                <p><strong>Açıklama:</strong></p>
+                <p id="eventDetailDescription" class="text-muted"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" onclick="deleteEvent()">
+                    <i class="fas fa-trash me-1"></i> Sil
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DATE PICKER MODAL -->
+<div class="modal fade" id="datePickerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header modal-header-gradient">
+                <h5 class="modal-title"><i class="fas fa-calendar-day me-2"></i>Tarih Seç</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="date-picker-content">
+                    <!-- MONTH SELECTION -->
+                    <div class="date-picker-section">
+                        <h6><i class="fas fa-calendar-alt me-1"></i> Ay</h6>
+                        <div class="month-grid" id="monthGrid">
+                            <button class="month-btn" data-month="0">Oca</button>
+                            <button class="month-btn" data-month="1">Şub</button>
+                            <button class="month-btn" data-month="2">Mar</button>
+                            <button class="month-btn" data-month="3">Nis</button>
+                            <button class="month-btn" data-month="4">May</button>
+                            <button class="month-btn" data-month="5">Haz</button>
+                            <button class="month-btn" data-month="6">Tem</button>
+                            <button class="month-btn" data-month="7">Ağu</button>
+                            <button class="month-btn" data-month="8">Eyl</button>
+                            <button class="month-btn" data-month="9">Eki</button>
+                            <button class="month-btn" data-month="10">Kas</button>
+                            <button class="month-btn" data-month="11">Ara</button>
+                        </div>
+                    </div>
+                    <!-- YEAR SELECTION -->
+                    <div class="date-picker-section">
+                        <h6><i class="fas fa-history me-1"></i> Yıl</h6>
+                        <div class="year-nav">
+                            <button onclick="changeYearRange(-10)"><i class="fas fa-chevron-left"></i></button>
+                            <span id="yearRangeLabel">2020 - 2029</span>
+                            <button onclick="changeYearRange(10)"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <div class="year-grid" id="yearGrid"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-add" onclick="goToSelectedDate()">
+                    <i class="fas fa-check me-1"></i> Git
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
+<script>
+    // ============================================================
+    // NOTES FUNCTIONALITY
+    // ============================================================
+    let currentNoteId = null;
+    let quill = null;
+    let saveTimeout = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        quill = new Quill('#editor-container', {
+            theme: 'snow',
+            placeholder: 'Notunu buraya yaz...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'list': 'check' }],
+                    ['link', 'blockquote', 'code-block'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    ['clean']
+                ]
+            }
+        });
+
+        quill.on('text-change', function () {
+            if (currentNoteId) {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(saveCurrentNote, 1000);
+            }
+        });
+
+        initCalendar();
+    });
+
+    function createNewNote() {
+        fetch('{% url "create_note" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ title: 'Yeni Not', content: '' })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const notesList = document.getElementById('notesList');
+                    const emptyState = document.getElementById('emptyNotesState');
+                    if (emptyState) emptyState.remove();
+
+                    const noteHtml = `
+                    <div class="note-item" data-id="${data.note.id}" onclick="selectNote(${data.note.id})">
+                        <div class="note-title">${data.note.title}</div>
+                        <div class="note-preview"></div>
+                        <div class="note-date">${data.note.updated_at}</div>
+                    </div>
+                `;
+                    notesList.insertAdjacentHTML('afterbegin', noteHtml);
+                    selectNote(data.note.id);
+                }
+            });
+    }
+
+    function selectNote(noteId) {
+        currentNoteId = noteId;
+
+        document.querySelectorAll('.note-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.querySelector(`.note-item[data-id="${noteId}"]`)?.classList.add('active');
+
+        document.getElementById('noteEditorContainer').style.display = 'flex';
+
+        fetch(`{% url "get_note" 0 %}`.replace('0', noteId))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.note) {
+                    document.getElementById('noteTitleInput').value = data.note.title;
+                    quill.root.innerHTML = data.note.content;
+                    updatePinIcon(data.note.is_pinned);
+                }
+            });
+    }
+
+    function saveCurrentNote() {
+        if (!currentNoteId) return;
+
+        const title = document.getElementById('noteTitleInput').value;
+        const content = quill.root.innerHTML;
+
+        fetch(`{% url "update_note" 0 %}`.replace('0', currentNoteId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ title: title, content: content })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const noteItem = document.querySelector(`.note-item[data-id="${currentNoteId}"]`);
+                    if (noteItem) {
+                        const titleEl = noteItem.querySelector('.note-title');
+                        const isPinned = noteItem.classList.contains('pinned');
+                        titleEl.innerHTML = (isPinned ? '<i class="fas fa-thumbtack pin-icon"></i>' : '') + data.note.title;
+                        noteItem.querySelector('.note-preview').textContent = data.note.preview;
+                        noteItem.querySelector('.note-date').textContent = data.note.updated_at;
+                    }
+                }
+            });
+    }
+
+    function togglePin() {
+        if (!currentNoteId) return;
+
+        fetch(`{% url "update_note" 0 %}`.replace('0', currentNoteId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ toggle_pin: true })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updatePinIcon(data.note.is_pinned);
+                    const noteItem = document.querySelector(`.note-item[data-id="${currentNoteId}"]`);
+                    if (noteItem) {
+                        noteItem.classList.toggle('pinned', data.note.is_pinned);
+                        const titleEl = noteItem.querySelector('.note-title');
+                        const titleText = titleEl.textContent.trim();
+                        titleEl.innerHTML = (data.note.is_pinned ? '<i class="fas fa-thumbtack pin-icon"></i>' : '') + titleText;
+                    }
+                }
+            });
+    }
+
+    function updatePinIcon(isPinned) {
+        const pinIcon = document.getElementById('pinIcon');
+        if (isPinned) {
+            pinIcon.style.color = '#f6ad55';
+        } else {
+            pinIcon.style.color = '';
+        }
+    }
+
+    function deleteCurrentNote() {
+        if (!currentNoteId) return;
+        if (!confirm('Bu notu silmek istediğine emin misin?')) return;
+
+        fetch(`{% url "delete_note" 0 %}`.replace('0', currentNoteId), {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelector(`.note-item[data-id="${currentNoteId}"]`)?.remove();
+                    document.getElementById('noteEditorContainer').style.display = 'none';
+                    currentNoteId = null;
+
+                    if (document.querySelectorAll('.note-item').length === 0) {
+                        document.getElementById('notesList').innerHTML = `
                         <div class="empty-state" id="emptyNotesState">
                             <i class="fas fa-sticky-note"></i>
-                            <p>Henüz not yok. Yeni bir not oluşturun!</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Note Editor -->
-                    <div class="note-editor-container" id="noteEditorContainer" style="display: none;">
-                        <div class="note-editor-header">
-                            <input type="text" class="note-title-input" id="noteTitleInput" placeholder="Not başlığı..."
-                                onchange="saveCurrentNote()">
-                            <div class="note-actions">
-                                <button onclick="togglePin()" title="Sabitle">
-                                    <i class="fas fa-thumbtack" id="pinIcon"></i>
-                                </button>
-                                <button class="delete-btn" onclick="deleteCurrentNote()" title="Sil">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div id="editor-container"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CALENDAR SECTION (Right) -->
-            <div class="col-lg-7 mb-4">
-                <div class="calendar-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-calendar-alt"></i> Takvim</h2>
-                        <button class="btn btn-add" data-bs-toggle="modal" data-bs-target="#eventModal">
-                            <i class="fas fa-plus me-1"></i> Etkinlik Ekle
-                        </button>
-                    </div>
-                    <div id="calendar"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- EVENT MODAL -->
-    <div class="modal fade" id="eventModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-calendar-plus me-2"></i>Yeni Etkinlik</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="eventForm">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Etkinlik Adı</label>
-                            <input type="text" class="form-control" id="eventTitle" required
-                                placeholder="Örn: Doğum Günü Partisi">
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Başlangıç Tarihi</label>
-                                <input type="date" class="form-control" id="eventStart" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Bitiş Tarihi</label>
-                                <input type="date" class="form-control" id="eventEnd">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Etkinlik Türü</label>
-                            <select class="form-select" id="eventType">
-                                <option value="event">Etkinlik</option>
-                                <option value="reminder">Hatırlatıcı</option>
-                                <option value="birthday">Doğum Günü</option>
-                                <option value="special">Özel An</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Açıklama</label>
-                            <textarea class="form-control" id="eventDescription" rows="2"
-                                placeholder="Etkinlik detayları..."></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Renk</label>
-                            <div class="color-options">
-                                <div class="color-option selected" style="background: #667eea;" data-color="#667eea">
-                                </div>
-                                <div class="color-option" style="background: #48bb78;" data-color="#48bb78"></div>
-                                <div class="color-option" style="background: #ed8936;" data-color="#ed8936"></div>
-                                <div class="color-option" style="background: #e53e3e;" data-color="#e53e3e"></div>
-                                <div class="color-option" style="background: #9f7aea;" data-color="#9f7aea"></div>
-                                <div class="color-option" style="background: #38b2ac;" data-color="#38b2ac"></div>
-                                <div class="color-option" style="background: #ed64a6;" data-color="#ed64a6"></div>
-                            </div>
-                        </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="eventRecurring">
-                            <label class="form-check-label fw-bold" for="eventRecurring">
-                                <i class="fas fa-sync-alt me-1"></i> Her Yıl Tekrarla
-                            </label>
-                            <small class="d-block text-muted">Bu etkinlik her yıl aynı tarihte gösterilir</small>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="button" class="btn btn-add" onclick="saveEvent()">
-                        <i class="fas fa-save me-1"></i> Kaydet
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- EVENT DETAIL MODAL -->
-    <div class="modal fade" id="eventDetailModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="eventDetailTitle"></h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p><strong>Tarih:</strong> <span id="eventDetailDate"></span></p>
-                    <p><strong>Tür:</strong> <span id="eventDetailType"></span></p>
-                    <p><strong>Açıklama:</strong></p>
-                    <p id="eventDetailDescription" class="text-muted"></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-danger" onclick="deleteEvent()">
-                        <i class="fas fa-trash me-1"></i> Sil
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- DATE PICKER MODAL -->
-    <div class="modal fade" id="datePickerModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-calendar-day me-2"></i>Tarih Seç</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="date-picker-content">
-                        <!-- MONTH SELECTION -->
-                        <div class="date-picker-section">
-                            <h6><i class="fas fa-calendar-alt me-1"></i> Ay</h6>
-                            <div class="month-grid" id="monthGrid">
-                                <button class="month-btn" data-month="0">Oca</button>
-                                <button class="month-btn" data-month="1">Şub</button>
-                                <button class="month-btn" data-month="2">Mar</button>
-                                <button class="month-btn" data-month="3">Nis</button>
-                                <button class="month-btn" data-month="4">May</button>
-                                <button class="month-btn" data-month="5">Haz</button>
-                                <button class="month-btn" data-month="6">Tem</button>
-                                <button class="month-btn" data-month="7">Ağu</button>
-                                <button class="month-btn" data-month="8">Eyl</button>
-                                <button class="month-btn" data-month="9">Eki</button>
-                                <button class="month-btn" data-month="10">Kas</button>
-                                <button class="month-btn" data-month="11">Ara</button>
-                            </div>
-                        </div>
-                        <!-- YEAR SELECTION -->
-                        <div class="date-picker-section">
-                            <h6><i class="fas fa-history me-1"></i> Yıl</h6>
-                            <div class="year-nav">
-                                <button onclick="changeYearRange(-10)"><i class="fas fa-chevron-left"></i></button>
-                                <span id="yearRangeLabel">2020 - 2029</span>
-                                <button onclick="changeYearRange(10)"><i class="fas fa-chevron-right"></i></button>
-                            </div>
-                            <div class="year-grid" id="yearGrid">
-                                <!-- Years will be populated by JavaScript -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="button" class="btn btn-add" onclick="goToSelectedDate()">
-                        <i class="fas fa-check me-1"></i> Git
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-
-    <script>
-        // ============================================================
-        // NOTES FUNCTIONALITY
-        // ============================================================
-        let currentNoteId = null;
-        let quill = null;
-        let saveTimeout = null;
-
-        // Initialize Quill Editor
-        document.addEventListener('DOMContentLoaded', function () {
-            quill = new Quill('#editor-container', {
-                theme: 'snow',
-                placeholder: 'Notunuzu buraya yazın...',
-                modules: {
-                    toolbar: [
-                        [{ 'header': [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'list': 'check' }],
-                        ['link', 'blockquote', 'code-block'],
-                        [{ 'color': [] }, { 'background': [] }],
-                        ['clean']
-                    ]
-                }
-            });
-
-            // Auto-save on content change
-            quill.on('text-change', function () {
-                if (currentNoteId) {
-                    clearTimeout(saveTimeout);
-                    saveTimeout = setTimeout(saveCurrentNote, 1000);
-                }
-            });
-
-            // Initialize Calendar
-            initCalendar();
-        });
-
-        function createNewNote() {
-            fetch('{% url "create_note" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    title: 'Yeni Not',
-                    content: ''
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Add new note to list
-                        const notesList = document.getElementById('notesList');
-                        const emptyState = document.getElementById('emptyNotesState');
-                        if (emptyState) emptyState.remove();
-
-                        const noteHtml = `
-                        <div class="note-item" data-id="${data.note.id}" onclick="selectNote(${data.note.id})">
-                            <div class="note-title">${data.note.title}</div>
-                            <div class="note-preview"></div>
-                            <div class="note-date">${data.note.updated_at}</div>
+                            <p>Henüz not yok. Yeni bir not oluştur!</p>
                         </div>
                     `;
-                        notesList.insertAdjacentHTML('afterbegin', noteHtml);
-                        selectNote(data.note.id);
                     }
-                });
-        }
-
-        function selectNote(noteId) {
-            currentNoteId = noteId;
-
-            // Update visual selection
-            document.querySelectorAll('.note-item').forEach(item => {
-                item.classList.remove('active');
-                if (parseInt(item.dataset.id) === noteId) {
-                    item.classList.add('active');
                 }
             });
+    }
 
-            // Show editor
-            document.getElementById('noteEditorContainer').style.display = 'flex';
+    // ============================================================
+    // CALENDAR FUNCTIONALITY
+    // ============================================================
+    let calendar;
+    let currentEventId = null;
+    let selectedMonth = new Date().getMonth();
+    let selectedYear = new Date().getFullYear();
+    let yearRangeStart = Math.floor(selectedYear / 10) * 10;
 
-            // Fetch note content from server
-            fetch(`/organizer/note/${noteId}/`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('noteTitleInput').value = data.note.title;
-                        quill.root.innerHTML = data.note.content || '';
-                        updatePinIcon(data.note.is_pinned);
-                    }
-                })
-                .catch(error => {
-                    console.error('Not yüklenirken hata:', error);
-                });
-        }
-
-
-        function saveCurrentNote() {
-            if (!currentNoteId) return;
-
-            const title = document.getElementById('noteTitleInput').value || 'Yeni Not';
-            const content = quill.root.innerHTML;
-
-            fetch(`/organizer/note/${currentNoteId}/update/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    title: title,
-                    content: content
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update note item in list
-                        const noteItem = document.querySelector(`.note-item[data-id="${currentNoteId}"]`);
-                        if (noteItem) {
-                            const titleElem = noteItem.querySelector('.note-title');
-                            const pinIcon = titleElem.querySelector('.pin-icon');
-                            titleElem.innerHTML = (pinIcon ? '<i class="fas fa-thumbtack pin-icon"></i> ' : '') + data.note.title;
-                            noteItem.querySelector('.note-preview').textContent = quill.getText().substring(0, 100);
-                            noteItem.querySelector('.note-date').textContent = data.note.updated_at;
-                        }
-                    }
-                });
-        }
-
-        function togglePin() {
-            if (!currentNoteId) return;
-
-            const noteItem = document.querySelector(`.note-item[data-id="${currentNoteId}"]`);
-            const isPinned = noteItem && noteItem.classList.contains('pinned');
-
-            fetch(`/organizer/note/${currentNoteId}/update/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    is_pinned: !isPinned
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        if (noteItem) {
-                            noteItem.classList.toggle('pinned');
-                            const titleElem = noteItem.querySelector('.note-title');
-                            if (data.note.is_pinned) {
-                                if (!titleElem.querySelector('.pin-icon')) {
-                                    titleElem.innerHTML = '<i class="fas fa-thumbtack pin-icon"></i> ' + titleElem.textContent;
-                                }
-                            } else {
-                                const pinIcon = titleElem.querySelector('.pin-icon');
-                                if (pinIcon) pinIcon.remove();
-                            }
-                        }
-                        updatePinIcon(data.note.is_pinned);
-                    }
-                });
-        }
-
-        function updatePinIcon(isPinned) {
-            const pinIcon = document.getElementById('pinIcon');
-            if (isPinned) {
-                pinIcon.style.color = '#f6ad55';
-            } else {
-                pinIcon.style.color = '#718096';
+    function initCalendar() {
+        const calendarEl = document.getElementById('calendar');
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'tr',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek'
+            },
+            buttonText: {
+                today: 'Bugün',
+                month: 'Ay',
+                week: 'Hafta'
+            },
+            events: function (info, successCallback, failureCallback) {
+                fetch('{% url "get_events" %}?start=' + info.startStr + '&end=' + info.endStr)
+                    .then(response => response.json())
+                    .then(data => successCallback(data))
+                    .catch(error => failureCallback(error));
+            },
+            eventClick: function (info) {
+                currentEventId = info.event.id;
+                document.getElementById('eventDetailTitle').textContent = info.event.title;
+                document.getElementById('eventDetailDate').textContent = info.event.start.toLocaleDateString('tr-TR');
+                document.getElementById('eventDetailType').textContent = info.event.extendedProps.event_type || 'Etkinlik';
+                document.getElementById('eventDetailDescription').textContent = info.event.extendedProps.description || 'Açıklama yok';
+                new bootstrap.Modal(document.getElementById('eventDetailModal')).show();
+            },
+            dateClick: function (info) {
+                document.getElementById('eventStart').value = info.dateStr;
+                document.getElementById('eventEnd').value = info.dateStr;
+                new bootstrap.Modal(document.getElementById('eventModal')).show();
             }
-        }
-
-        function deleteCurrentNote() {
-            if (!currentNoteId) return;
-            if (!confirm('Bu notu silmek istediğinize emin misiniz?')) return;
-
-            fetch(`/organizer/note/${currentNoteId}/delete/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const noteItem = document.querySelector(`.note-item[data-id="${currentNoteId}"]`);
-                        if (noteItem) noteItem.remove();
-
-                        currentNoteId = null;
-                        document.getElementById('noteEditorContainer').style.display = 'none';
-
-                        // Show empty state if no notes left
-                        const notesList = document.getElementById('notesList');
-                        if (!notesList.querySelector('.note-item')) {
-                            notesList.innerHTML = `
-                            <div class="empty-state" id="emptyNotesState">
-                                <i class="fas fa-sticky-note"></i>
-                                <p>Henüz not yok. Yeni bir not oluşturun!</p>
-                            </div>
-                        `;
-                        }
-                    }
-                });
-        }
-
-        // ============================================================
-        // CALENDAR FUNCTIONALITY
-        // ============================================================
-        let calendar = null;
-        let selectedEventId = null;
-        let selectedColor = '#667eea';
-
-        function initCalendar() {
-            const calendarEl = document.getElementById('calendar');
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                locale: 'tr',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek'
-                },
-                buttonText: {
-                    today: 'Bugün',
-                    month: 'Ay',
-                    week: 'Hafta'
-                },
-                events: '{% url "get_events" %}',
-                dateClick: function (info) {
-                    document.getElementById('eventStart').value = info.dateStr;
-                    new bootstrap.Modal(document.getElementById('eventModal')).show();
-                },
-                eventClick: function (info) {
-                    selectedEventId = info.event.id;
-                    document.getElementById('eventDetailTitle').textContent = info.event.title;
-                    document.getElementById('eventDetailDate').textContent = info.event.start.toLocaleDateString('tr-TR');
-                    document.getElementById('eventDetailType').textContent = info.event.extendedProps.event_type || 'Etkinlik';
-                    document.getElementById('eventDetailDescription').textContent = info.event.extendedProps.description || 'Açıklama yok';
-                    new bootstrap.Modal(document.getElementById('eventDetailModal')).show();
-                }
-            });
-            calendar.render();
-        }
-
-        // Color picker
-        document.querySelectorAll('.color-option').forEach(option => {
-            option.addEventListener('click', function () {
-                document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-                this.classList.add('selected');
-                selectedColor = this.dataset.color;
-            });
         });
+        calendar.render();
 
-        function saveEvent() {
-            const title = document.getElementById('eventTitle').value;
-            const startDate = document.getElementById('eventStart').value;
-            const endDate = document.getElementById('eventEnd').value;
-            const eventType = document.getElementById('eventType').value;
-            const description = document.getElementById('eventDescription').value;
-
-            if (!title || !startDate) {
-                alert('Lütfen etkinlik adı ve başlangıç tarihi girin!');
-                return;
+        // Title click for date picker
+        setTimeout(() => {
+            const titleEl = document.querySelector('.fc-toolbar-title');
+            if (titleEl) {
+                titleEl.addEventListener('click', openDatePicker);
             }
+        }, 100);
+    }
 
-            fetch('{% url "create_event" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    title: title,
-                    start_date: startDate,
-                    end_date: endDate || null,
-                    event_type: eventType,
-                    description: description,
-                    color: selectedColor,
-                    all_day: true,
-                    is_recurring: document.getElementById('eventRecurring').checked
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        calendar.addEvent({
-                            id: data.event.id,
-                            title: data.event.title,
-                            start: data.event.start,
-                            end: data.event.end,
-                            color: data.event.color,
-                            allDay: data.event.allDay
-                        });
-                        bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
-                        document.getElementById('eventForm').reset();
-                        document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-                        document.querySelector('.color-option[data-color="#667eea"]').classList.add('selected');
-                        selectedColor = '#667eea';
-                    }
-                });
-        }
+    function openDatePicker() {
+        const currentDate = calendar.getDate();
+        selectedMonth = currentDate.getMonth();
+        selectedYear = currentDate.getFullYear();
+        yearRangeStart = Math.floor(selectedYear / 10) * 10;
 
-        function deleteEvent() {
-            if (!selectedEventId) return;
-            if (!confirm('Bu etkinliği silmek istediğinize emin misiniz?')) return;
+        updateMonthGrid();
+        updateYearGrid();
 
-            fetch(`/organizer/event/${selectedEventId}/delete/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        calendar.getEventById(selectedEventId).remove();
-                        bootstrap.Modal.getInstance(document.getElementById('eventDetailModal')).hide();
-                        selectedEventId = null;
-                    }
-                });
-        }
+        new bootstrap.Modal(document.getElementById('datePickerModal')).show();
+    }
 
-        // ============================================================
-        // DATE PICKER FUNCTIONALITY
-        // ============================================================
-        let selectedMonth = new Date().getMonth();
-        let selectedYear = new Date().getFullYear();
-        let yearRangeStart = Math.floor(selectedYear / 10) * 10;
-
-        // Calendar render sonrası title'a tıklama ekle
-        function setupTitleClick() {
-            setTimeout(() => {
-                const titleEl = document.querySelector('.fc-toolbar-title');
-                if (titleEl) {
-                    titleEl.addEventListener('click', openDatePicker);
-                }
-            }, 100);
-        }
-
-        function openDatePicker() {
-            // Mevcut takvim tarihini al
-            const currentDate = calendar.getDate();
-            selectedMonth = currentDate.getMonth();
-            selectedYear = currentDate.getFullYear();
-            yearRangeStart = Math.floor(selectedYear / 10) * 10;
-
-            // Ay seçimini güncelle
-            updateMonthSelection();
-            // Yıl gridini oluştur
-            updateYearGrid();
-
-            new bootstrap.Modal(document.getElementById('datePickerModal')).show();
-        }
-
-        function updateMonthSelection() {
-            document.querySelectorAll('.month-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (parseInt(btn.dataset.month) === selectedMonth) {
-                    btn.classList.add('active');
-                }
-            });
-        }
-
-        function updateYearGrid() {
-            const yearGrid = document.getElementById('yearGrid');
-            yearGrid.innerHTML = '';
-            document.getElementById('yearRangeLabel').textContent = `${yearRangeStart} - ${yearRangeStart + 9}`;
-
-            for (let i = 0; i < 10; i++) {
-                const year = yearRangeStart + i;
-                const btn = document.createElement('button');
-                btn.className = 'year-btn' + (year === selectedYear ? ' active' : '');
-                btn.textContent = year;
-                btn.onclick = () => selectYear(year);
-                yearGrid.appendChild(btn);
-            }
-        }
-
-        function changeYearRange(delta) {
-            yearRangeStart += delta;
-            updateYearGrid();
-        }
-
-        function selectYear(year) {
-            selectedYear = year;
-            document.querySelectorAll('.year-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (parseInt(btn.textContent) === year) {
-                    btn.classList.add('active');
-                }
-            });
-        }
-
-        // Ay butonlarına tıklama
+    function updateMonthGrid() {
         document.querySelectorAll('.month-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
-                selectedMonth = parseInt(this.dataset.month);
-                updateMonthSelection();
-            });
+            btn.classList.remove('active');
+            if (parseInt(btn.dataset.month) === selectedMonth) {
+                btn.classList.add('active');
+            }
         });
 
-        function goToSelectedDate() {
-            const targetDate = new Date(selectedYear, selectedMonth, 1);
-            calendar.gotoDate(targetDate);
-            bootstrap.Modal.getInstance(document.getElementById('datePickerModal')).hide();
+        document.querySelectorAll('.month-btn').forEach(btn => {
+            btn.onclick = function () {
+                selectedMonth = parseInt(this.dataset.month);
+                updateMonthGrid();
+            };
+        });
+    }
 
-            // Yeni title'a tekrar click ekle
-            setupTitleClick();
+    function updateYearGrid() {
+        const yearGrid = document.getElementById('yearGrid');
+        yearGrid.innerHTML = '';
+
+        document.getElementById('yearRangeLabel').textContent = yearRangeStart + ' - ' + (yearRangeStart + 9);
+
+        for (let i = 0; i < 10; i++) {
+            const year = yearRangeStart + i;
+            const btn = document.createElement('button');
+            btn.className = 'year-btn' + (year === selectedYear ? ' active' : '');
+            btn.textContent = year;
+            btn.onclick = function () {
+                selectedYear = year;
+                document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            };
+            yearGrid.appendChild(btn);
+        }
+    }
+
+    function changeYearRange(delta) {
+        yearRangeStart += delta;
+        updateYearGrid();
+    }
+
+    function goToSelectedDate() {
+        calendar.gotoDate(new Date(selectedYear, selectedMonth, 1));
+        bootstrap.Modal.getInstance(document.getElementById('datePickerModal')).hide();
+    }
+
+    // Color selection
+    document.querySelectorAll('.color-option').forEach(option => {
+        option.addEventListener('click', function () {
+            document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+
+    function saveEvent() {
+        const title = document.getElementById('eventTitle').value;
+        const start = document.getElementById('eventStart').value;
+        const end = document.getElementById('eventEnd').value || start;
+        const eventType = document.getElementById('eventType').value;
+        const description = document.getElementById('eventDescription').value;
+        const color = document.querySelector('.color-option.selected').dataset.color;
+        const isRecurring = document.getElementById('eventRecurring').checked;
+
+        if (!title || !start) {
+            alert('Lütfen etkinlik adı ve başlangıç tarihi girin.');
+            return;
         }
 
-        // initCalendar sonrası title click ekle
-        const originalInitCalendar = initCalendar;
-        initCalendar = function () {
-            originalInitCalendar();
-            setupTitleClick();
-        };
-    </script>
-</body>
+        fetch('{% url "create_event" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                title: title,
+                start_date: start,
+                end_date: end,
+                event_type: eventType,
+                description: description,
+                color: color,
+                is_recurring: isRecurring
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    calendar.refetchEvents();
+                    bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
+                    document.getElementById('eventForm').reset();
+                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    document.querySelector('.color-option').classList.add('selected');
+                }
+            });
+    }
 
-</html>
+    function deleteEvent() {
+        if (!currentEventId) return;
+        if (!confirm('Bu etkinliği silmek istediğine emin misin?')) return;
+
+        fetch(`{% url "delete_event" 0 %}`.replace('0', currentEventId), {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    calendar.refetchEvents();
+                    bootstrap.Modal.getInstance(document.getElementById('eventDetailModal')).hide();
+                    currentEventId = null;
+                }
+            });
+    }
+</script>
+{% endblock %}

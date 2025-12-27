@@ -1,0 +1,530 @@
+/*
+ * MD-Website Global Styles
+ * Design System with Dark Mode Support
+ */
+
+/* ============================================
+   1. CSS CUSTOM PROPERTIES (Design Tokens)
+   ============================================ */
+:root {
+    /* Primary Palette */
+    --primary-start: #667eea;
+    --primary-end: #764ba2;
+    --primary-gradient: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    
+    /* Semantic Colors */
+    --success-start: #10b981;
+    --success-end: #34d399;
+    --success-gradient: linear-gradient(135deg, var(--success-start), var(--success-end));
+    
+    --danger-start: #ef4444;
+    --danger-end: #f87171;
+    --danger-gradient: linear-gradient(135deg, var(--danger-start), var(--danger-end));
+    
+    --warning-start: #f59e0b;
+    --warning-end: #fbbf24;
+    --warning-gradient: linear-gradient(135deg, var(--warning-start), var(--warning-end));
+    
+    --accent-start: #11998e;
+    --accent-end: #38ef7d;
+    --accent-gradient: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+    
+    /* Neutrals - Light Mode */
+    --text-primary: #2d3748;
+    --text-secondary: #718096;
+    --text-muted: #a0aec0;
+    --bg-body: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --bg-card: #ffffff;
+    --bg-card-secondary: #f8f9fa;
+    --bg-navbar: rgba(255, 255, 255, 0.95);
+    --border-color: #e2e8f0;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    
+    /* Spacing Scale */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 40px;
+    --space-2xl: 60px;
+    
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-xl: 25px;
+    --radius-full: 50px;
+    
+    /* Typography */
+    --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-base: 0.3s ease;
+    --transition-slow: 0.5s ease;
+}
+
+/* ============================================
+   2. DARK MODE
+   ============================================ */
+[data-theme="dark"] {
+    --text-primary: #f7fafc;
+    --text-secondary: #cbd5e0;
+    --text-muted: #718096;
+    --bg-body: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    --bg-card: #1e293b;
+    --bg-card-secondary: #334155;
+    --bg-navbar: rgba(30, 41, 59, 0.95);
+    --border-color: #475569;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   3. BASE STYLES
+   ============================================ */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-body);
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 0;
+    transition: background var(--transition-slow), color var(--transition-base);
+}
+
+/* ============================================
+   4. NAVBAR COMPONENT
+   ============================================ */
+.navbar-custom {
+    background: var(--bg-navbar);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 30px var(--shadow-color);
+    padding: var(--space-md) 0;
+    transition: background var(--transition-base);
+}
+
+.navbar-custom .navbar-brand {
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.navbar-custom .navbar-brand i {
+    color: var(--primary-start);
+}
+
+/* ============================================
+   5. CARD COMPONENT
+   ============================================ */
+.card-modern {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: 0 10px 40px var(--shadow-color);
+    border: none;
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.card-modern:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 60px var(--shadow-color);
+}
+
+.card-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: var(--primary-gradient);
+}
+
+.card-modern.success::before {
+    background: var(--success-gradient);
+}
+
+.card-modern.danger::before {
+    background: var(--danger-gradient);
+}
+
+.card-modern.warning::before {
+    background: var(--warning-gradient);
+}
+
+.card-modern.accent::before {
+    background: var(--accent-gradient);
+}
+
+/* ============================================
+   6. BUTTON COMPONENTS
+   ============================================ */
+.btn-primary-gradient {
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-full);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+}
+
+.btn-primary-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    color: white;
+}
+
+.btn-success-gradient {
+    background: var(--success-gradient);
+    color: white;
+    border: none;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-full);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+}
+
+.btn-success-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+    color: white;
+}
+
+.btn-danger-gradient {
+    background: var(--danger-gradient);
+    color: white;
+    border: none;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-full);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+}
+
+.btn-danger-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+    color: white;
+}
+
+.btn-accent-gradient {
+    background: var(--accent-gradient);
+    color: white;
+    border: none;
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-full);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+}
+
+.btn-accent-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(56, 239, 125, 0.4);
+    color: white;
+}
+
+/* ============================================
+   7. FORM CONTROLS
+   ============================================ */
+.form-control-modern {
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    font-size: 1rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-control-modern:focus {
+    outline: none;
+    border-color: var(--primary-start);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+}
+
+.form-control-modern::placeholder {
+    color: var(--text-muted);
+}
+
+/* ============================================
+   8. FEATURE ICON
+   ============================================ */
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    margin-bottom: var(--space-lg);
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.feature-icon.success {
+    background: var(--success-gradient);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
+.feature-icon.danger {
+    background: var(--danger-gradient);
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+
+.feature-icon.accent {
+    background: var(--accent-gradient);
+    box-shadow: 0 8px 20px rgba(56, 239, 125, 0.4);
+}
+
+/* ============================================
+   9. GLASSMORPHISM SECTIONS
+   ============================================ */
+.glass-section {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px var(--shadow-color);
+}
+
+[data-theme="dark"] .glass-section {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+/* ============================================
+   10. STATS BADGE
+   ============================================ */
+.stats-badge {
+    position: absolute;
+    top: var(--space-lg);
+    right: var(--space-lg);
+    background: var(--warning-gradient);
+    color: var(--text-primary);
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-full);
+    font-weight: var(--font-weight-bold);
+    font-size: 0.875rem;
+    box-shadow: 0 4px 15px rgba(253, 203, 110, 0.4);
+}
+
+/* ============================================
+   11. AMOUNT COLORS
+   ============================================ */
+.amount-income {
+    color: var(--success-start);
+    font-weight: var(--font-weight-bold);
+}
+
+.amount-expense {
+    color: var(--danger-start);
+    font-weight: var(--font-weight-bold);
+}
+
+/* ============================================
+   12. DATA TABLE
+   ============================================ */
+.data-table {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 10px 40px var(--shadow-color);
+}
+
+.data-table .table {
+    margin-bottom: 0;
+    color: var(--text-primary);
+}
+
+.data-table thead {
+    background: var(--bg-card-secondary);
+}
+
+.data-table tbody tr {
+    transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.data-table tbody tr:hover {
+    background: var(--bg-card-secondary);
+}
+
+/* ============================================
+   13. CHART CONTAINER
+   ============================================ */
+.chart-container {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    box-shadow: 0 10px 40px var(--shadow-color);
+}
+
+/* ============================================
+   14. DARK MODE TOGGLE
+   ============================================ */
+.theme-toggle {
+    background: var(--bg-card-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-full);
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    transition: all var(--transition-base);
+    color: var(--text-primary);
+}
+
+.theme-toggle:hover {
+    border-color: var(--primary-start);
+}
+
+.theme-toggle i {
+    font-size: 1rem;
+}
+
+/* ============================================
+   15. MODAL STYLES
+   ============================================ */
+.modal-content {
+    background: var(--bg-card);
+    border: none;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+}
+
+.modal-header-gradient {
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+}
+
+.modal-header-success {
+    background: var(--success-gradient);
+    color: white;
+    border: none;
+}
+
+.modal-header-danger {
+    background: var(--danger-gradient);
+    color: white;
+    border: none;
+}
+
+/* ============================================
+   16. UTILITY CLASSES
+   ============================================ */
+.text-gradient {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.mb-section {
+    margin-bottom: var(--space-xl);
+}
+
+/* ============================================
+   17. RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 768px) {
+    :root {
+        --space-xl: 24px;
+        --space-2xl: 40px;
+    }
+    
+    .card-modern {
+        padding: var(--space-md);
+    }
+    
+    .glass-section {
+        padding: var(--space-lg);
+    }
+    
+    .btn-primary-gradient,
+    .btn-success-gradient,
+    .btn-danger-gradient,
+    .btn-accent-gradient {
+        padding: var(--space-md) var(--space-lg);
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ============================================
+   18. LOADING STATES
+   ============================================ */
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.loading-overlay.active {
+    display: flex;
+}
+
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: var(--accent-end);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    color: white;
+    margin-top: var(--space-lg);
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-semibold);
+}

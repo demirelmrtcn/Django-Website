@@ -21,7 +21,9 @@ import uuid
 import tempfile
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
+from datetime import timedelta
 import json
+import re
 
 @login_required
 def dashboard(request):
@@ -564,6 +566,8 @@ def update_note(request, id):
             note.color = data['color']
         if 'is_pinned' in data:
             note.is_pinned = data['is_pinned']
+        if data.get('toggle_pin'):
+            note.is_pinned = not note.is_pinned
         
         note.save()
         
@@ -573,6 +577,7 @@ def update_note(request, id):
                 'id': note.id,
                 'title': note.title,
                 'content': note.content,
+                'preview': re.sub('<[^<]+?>', '', note.content)[:100] if note.content else '',
                 'color': note.color,
                 'updated_at': note.updated_at.strftime('%d.%m.%Y %H:%M'),
                 'is_pinned': note.is_pinned
