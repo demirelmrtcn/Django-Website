@@ -780,11 +780,12 @@ def media_downloader_dashboard(request):
 @login_required
 @require_POST
 def download_media(request):
-    """Video/ses indirme endpoint'i"""
+    """Video/ses indirme endpoint'i with quality options"""
     try:
         data = json.loads(request.body)
         url = data.get('url', '').strip()
         format_type = data.get('format', 'video')  # 'video' veya 'audio'
+        quality = data.get('quality', '1080')  # Video: 2160/1440/1080/720/480/360, Audio: 320/192/128/64
         
         if not url:
             return JsonResponse({'error': 'URL gerekli!'}, status=400)
@@ -795,23 +796,29 @@ def download_media(request):
         
         # yt-dlp ayarları
         if format_type == 'audio':
-            # MP3 formatı için
+            # MP3 formatı için - kalite seçeneği ile
+            audio_quality = quality if quality in ['320', '192', '128', '64'] else '192'
             ydl_opts = {
                 'format': 'bestaudio/best',
                 'outtmpl': os.path.join(temp_dir, f'{unique_id}.%(ext)s'),
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',
-                    'preferredquality': '192',
+                    'preferredquality': audio_quality,
                 }],
                 'quiet': True,
                 'no_warnings': True,
             }
             expected_ext = 'mp3'
         else:
-            # MP4 formatı için
+            # MP4 formatı için - kalite seçeneği ile
+            video_quality = quality if quality in ['2160', '1440', '1080', '720', '480', '360'] else '1080'
+            
+            # Kaliteye göre format string oluştur
+            format_string = f'bestvideo[height<={video_quality}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={video_quality}]+bestaudio/best[height<={video_quality}]/best'
+            
             ydl_opts = {
-                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'format': format_string,
                 'outtmpl': os.path.join(temp_dir, f'{unique_id}.%(ext)s'),
                 'merge_output_format': 'mp4',
                 'quiet': True,
@@ -846,7 +853,12 @@ def download_media(request):
         
         # Güvenli dosya adı oluştur
         safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip()[:50]
-        filename = f"{safe_title}.{expected_ext}"
+        
+        # Kalite bilgisini dosya adına ekle
+        if format_type == 'video':
+            filename = f"{safe_title}_{video_quality}p.{expected_ext}"
+        else:
+            filename = f"{safe_title}_{audio_quality}kbps.{expected_ext}"
         
         # Dosyayı response olarak gönder
         response = FileResponse(
@@ -855,10 +867,6 @@ def download_media(request):
             filename=filename
         )
         response['Content-Length'] = file_size
-        
-        # Dosyayı silmek için cleanup (response gönderildikten sonra)
-        # Not: FileResponse dosyayı kapatır ama silmez, bunu manuel yapmalıyız
-        # Şimdilik temp dizininde kalacak, OS tarafından temizlenecek
         
         return response
         
@@ -872,3 +880,4 @@ def download_media(request):
             return JsonResponse({'error': f'İndirme hatası: {error_msg[:100]}'}, status=400)
     except Exception as e:
         return JsonResponse({'error': f'Bir hata oluştu: {str(e)[:100]}'}, status=500)
+

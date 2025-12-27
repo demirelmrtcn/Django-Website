@@ -87,6 +87,39 @@
             transform: scale(1.05);
         }
 
+        .quality-btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+            background: white;
+            color: #2d3748;
+            font-size: 0.9rem;
+        }
+
+        .quality-btn:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .quality-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: transparent;
+        }
+
+        .quality-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .quality-section.audio-quality .quality-btn.active {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
         .download-btn {
             background: linear-gradient(135deg, #11998e, #38ef7d);
             color: white;
@@ -215,6 +248,12 @@
             color: #718096;
             margin-bottom: 0;
         }
+
+        .quality-label {
+            color: #718096;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 
@@ -293,6 +332,37 @@
                                 <i class="fas fa-music me-2"></i>Ses (MP3)
                             </button>
                         </div>
+
+                        <!-- Video Quality Selection -->
+                        <div class="quality-section video-quality" id="videoQualitySection">
+                            <p class="quality-label text-center mb-3">
+                                <i class="fas fa-tv me-2"></i>Video Kalitesi Seçin
+                            </p>
+                            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                <button type="button" class="quality-btn" data-quality="2160">4K (2160p)</button>
+                                <button type="button" class="quality-btn" data-quality="1440">2K (1440p)</button>
+                                <button type="button" class="quality-btn active" data-quality="1080">1080p (Full
+                                    HD)</button>
+                                <button type="button" class="quality-btn" data-quality="720">720p (HD)</button>
+                                <button type="button" class="quality-btn" data-quality="480">480p</button>
+                                <button type="button" class="quality-btn" data-quality="360">360p</button>
+                            </div>
+                        </div>
+
+                        <!-- Audio Quality Selection -->
+                        <div class="quality-section audio-quality" id="audioQualitySection" style="display: none;">
+                            <p class="quality-label text-center mb-3">
+                                <i class="fas fa-headphones me-2"></i>Ses Kalitesi Seçin
+                            </p>
+                            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                <button type="button" class="quality-btn" data-quality="320">320 kbps (En
+                                    Yüksek)</button>
+                                <button type="button" class="quality-btn active" data-quality="192">192 kbps
+                                    (Yüksek)</button>
+                                <button type="button" class="quality-btn" data-quality="128">128 kbps (Normal)</button>
+                                <button type="button" class="quality-btn" data-quality="64">64 kbps (Düşük)</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Download Button -->
@@ -311,7 +381,8 @@
                         <p>
                             1. İndirmek istediğiniz videonun linkini yapıştırın<br>
                             2. Video (MP4) veya Ses (MP3) formatını seçin<br>
-                            3. "İndir" butonuna tıklayın ve dosyanız otomatik indirilecek
+                            3. İstediğiniz kaliteyi seçin<br>
+                            4. "İndir" butonuna tıklayın ve dosyanız otomatik indirilecek
                         </p>
                     </div>
                 </div>
@@ -327,8 +398,12 @@
             const urlInput = document.getElementById('mediaUrl');
             const alertArea = document.getElementById('alertArea');
             const loadingOverlay = document.getElementById('loadingOverlay');
+            const videoQualitySection = document.getElementById('videoQualitySection');
+            const audioQualitySection = document.getElementById('audioQualitySection');
 
             let selectedFormat = 'video';
+            let selectedVideoQuality = '1080';
+            let selectedAudioQuality = '192';
 
             // Format seçimi
             formatBtns.forEach(btn => {
@@ -336,6 +411,33 @@
                     formatBtns.forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     selectedFormat = this.dataset.format;
+
+                    // Kalite section'larını göster/gizle
+                    if (selectedFormat === 'video') {
+                        videoQualitySection.style.display = 'block';
+                        audioQualitySection.style.display = 'none';
+                    } else {
+                        videoQualitySection.style.display = 'none';
+                        audioQualitySection.style.display = 'block';
+                    }
+                });
+            });
+
+            // Video kalite seçimi
+            videoQualitySection.querySelectorAll('.quality-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    videoQualitySection.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedVideoQuality = this.dataset.quality;
+                });
+            });
+
+            // Audio kalite seçimi
+            audioQualitySection.querySelectorAll('.quality-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    audioQualitySection.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedAudioQuality = this.dataset.quality;
                 });
             });
 
@@ -360,6 +462,8 @@
                 alertArea.innerHTML = '';
 
                 try {
+                    const quality = selectedFormat === 'video' ? selectedVideoQuality : selectedAudioQuality;
+
                     const response = await fetch('{% url "download_media" %}', {
                         method: 'POST',
                         headers: {
@@ -368,7 +472,8 @@
                         },
                         body: JSON.stringify({
                             url: url,
-                            format: selectedFormat
+                            format: selectedFormat,
+                            quality: quality
                         })
                     });
 
