@@ -109,6 +109,61 @@ def finance_dashboard(request):
         chart_income.append(float(inc))
         chart_expense.append(float(exp))
 
+    # --- 6. KATEGORİ BAZLI HARCAMA ANALİZİ (Pie Chart için) ---
+    category_data = transactions.filter(transaction_type='expense').values('category').annotate(
+        total=Sum('amount')
+    ).order_by('-total')
+    
+    # Kategori isimlerini Türkçe'ye çevir
+    category_labels = []
+    category_values = []
+    category_colors = {
+        'general': '#6366f1',
+        'food': '#f59e0b',
+        'transport': '#3b82f6',
+        'market': '#10b981',
+        'bills': '#ef4444',
+        'entertainment': '#8b5cf6',
+        'clothing': '#ec4899',
+        'health': '#14b8a6',
+        'education': '#6366f1',
+        'rent': '#f97316',
+        'salary': '#22c55e',
+        'bonus': '#84cc16',
+        'other': '#94a3b8',
+    }
+    category_display_names = dict(Transaction.CATEGORY_CHOICES)
+    pie_colors = []
+    
+    for item in category_data:
+        cat_key = item['category']
+        category_labels.append(category_display_names.get(cat_key, cat_key))
+        category_values.append(float(item['total']))
+        pie_colors.append(category_colors.get(cat_key, '#94a3b8'))
+    
+    # En yüksek harcama kategorisi
+    top_category = category_labels[0] if category_labels else 'Henüz yok'
+    top_category_amount = category_values[0] if category_values else 0
+    
+    # Günlük ortalama harcama
+    import calendar
+    days_in_month = calendar.monthrange(selected_date.year, selected_date.month)[1]
+    daily_average = float(total_expense) / days_in_month if total_expense > 0 else 0
+    
+    # Önceki ay karşılaştırması
+    prev_month_date = selected_date - relativedelta(months=1)
+    prev_month_expense = Transaction.objects.filter(
+        user=request.user,
+        transaction_type='expense',
+        date__year=prev_month_date.year,
+        date__month=prev_month_date.month
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    if prev_month_expense > 0:
+        expense_change_percent = ((float(total_expense) - float(prev_month_expense)) / float(prev_month_expense)) * 100
+    else:
+        expense_change_percent = 0
+
     context = {
         'transactions': transactions,
         'form': form,
@@ -125,8 +180,18 @@ def finance_dashboard(request):
         'chart_labels': chart_labels,
         'chart_income': chart_income,
         'chart_expense': chart_expense,
+        # Kategori ve Pie Chart Verileri
+        'category_labels': category_labels,
+        'category_values': category_values,
+        'pie_colors': pie_colors,
+        # Ek İstatistikler
+        'top_category': top_category,
+        'top_category_amount': top_category_amount,
+        'daily_average': round(daily_average, 2),
+        'expense_change_percent': round(expense_change_percent, 1),
     }
     return render(request, 'core/finance.html', context)
+
 
 
 @login_required

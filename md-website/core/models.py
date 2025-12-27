@@ -9,15 +9,34 @@ class Transaction(models.Model):
         ('expense', 'Harcama'),
         ('income', 'Gelen Para'),
     )
+    
+    # Kategori seçenekleri
+    CATEGORY_CHOICES = (
+        ('general', 'Genel'),
+        ('food', 'Yemek & Restoran'),
+        ('transport', 'Ulaşım'),
+        ('market', 'Market & Alışveriş'),
+        ('bills', 'Fatura & Abonelik'),
+        ('entertainment', 'Eğlence'),
+        ('clothing', 'Giyim'),
+        ('health', 'Sağlık'),
+        ('education', 'Eğitim'),
+        ('rent', 'Kira'),
+        ('salary', 'Maaş'),
+        ('bonus', 'Prim & Bonus'),
+        ('other', 'Diğer'),
+    )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)  # Hangi kullanıcının işlemi?
     title = models.CharField(max_length=100, verbose_name="Açıklama / Ad")
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Tutar (TL)")
     transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES, default='expense')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='general', verbose_name="Kategori")
     date = models.DateField(default=timezone.now, verbose_name="Tarih")
     installment_count = models.IntegerField(default=0, verbose_name="Taksit Sayısı (Peşinse 0)")
     is_recurring = models.BooleanField(default=False, verbose_name="Her Ay Tekrarla")
     created_at = models.DateTimeField(auto_now_add=True)  # Kayıt oluşturulma zamanı
+
 
     def __str__(self):
         return f"{self.title} - {self.amount} TL"

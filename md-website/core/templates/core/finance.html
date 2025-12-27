@@ -249,6 +249,56 @@
             </div>
         </div>
 
+        <!-- Mini Stats Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="stats-card" style="padding: 15px;">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                            style="width: 45px; height: 45px; background: rgba(99, 102, 241, 0.1);">
+                            <i class="fas fa-calendar-day" style="color: #6366f1;"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">Günlük Ortalama</small>
+                            <h5 class="mb-0 fw-bold">{{ daily_average|floatformat:0|intcomma }} ₺</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card" style="padding: 15px;">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                            style="width: 45px; height: 45px; background: rgba(239, 68, 68, 0.1);">
+                            <i class="fas fa-fire" style="color: #ef4444;"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">En Yüksek Kategori</small>
+                            <h5 class="mb-0 fw-bold">{{ top_category }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card" style="padding: 15px;">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                            style="width: 45px; height: 45px; background: {% if expense_change_percent > 0 %}rgba(239, 68, 68, 0.1){% else %}rgba(16, 185, 129, 0.1){% endif %};">
+                            <i class="fas {% if expense_change_percent > 0 %}fa-arrow-trend-up{% else %}fa-arrow-trend-down{% endif %}"
+                                style="color: {% if expense_change_percent > 0 %}#ef4444{% else %}#10b981{% endif %};"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">Önceki Aya Göre</small>
+                            <h5
+                                class="mb-0 fw-bold {% if expense_change_percent > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {% if expense_change_percent > 0 %}+{% endif %}{{ expense_change_percent }}%
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="row g-3 mb-4">
             <div class="col-md-6">
@@ -296,8 +346,8 @@
                         </td>
                         <td
                             class="text-end {% if item.transaction_type == 'income' %}amount-income{% else %}amount-expense{% endif %} fs-5">
-                            {% if item.transaction_type == 'income' %}+{% else %}-{% endif %}{{
-                            item.amount|floatformat:0|intcomma }} ₺
+                            {% if item.transaction_type == 'income' %}+{% else %}-{% endif %}
+                            {{ item.amount|floatformat:0|intcomma }} ₺
                         </td>
                         <td class="text-center">
                             <a href="{% url 'delete_transaction' item.id %}" class="btn btn-link text-danger"
@@ -318,12 +368,33 @@
             </table>
         </div>
 
-        <!-- Chart -->
-        <div class="chart-container mb-5">
-            <h5 class="mb-4"><i class="fas fa-chart-bar me-2" style="color: #667eea;"></i>Son 6 Ayın Analizi</h5>
-            <canvas id="financeChart" style="max-height: 400px;"></canvas>
+        <!-- Charts Row -->
+        <div class="row g-4 mb-5">
+            <!-- Bar Chart -->
+            <div class="col-lg-7">
+                <div class="chart-container">
+                    <h5 class="mb-4"><i class="fas fa-chart-bar me-2" style="color: #667eea;"></i>Son 6 Ayın Analizi
+                    </h5>
+                    <canvas id="financeChart" style="max-height: 350px;"></canvas>
+                </div>
+            </div>
+            <!-- Pie Chart -->
+            <div class="col-lg-5">
+                <div class="chart-container">
+                    <h5 class="mb-4"><i class="fas fa-chart-pie me-2" style="color: #667eea;"></i>Kategori Dağılımı</h5>
+                    {% if category_values %}
+                    <canvas id="categoryChart" style="max-height: 350px;"></canvas>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-pie fa-3x text-muted opacity-25 mb-3"></i>
+                        <p class="text-muted">Bu ay için harcama verisi yok</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
+
 
     <!-- Modals (expense & income) - Keep existing modal code -->
     <div class="modal fade" id="expenseModal" tabindex="-1">
@@ -340,8 +411,10 @@
                         <div class="mb-3"><label class="form-label">Tarih</label> {{ form.date }}</div>
                         <div class="mb-3"><label class="form-label">Açıklama</label> {{ form.title }}</div>
                         <div class="mb-3"><label class="form-label">Tutar</label> {{ form.amount }}</div>
-                        <div class="mb-3"><label class="form-label">Taksit (Yoksa 0)</label> {{ form.installment_count
-                            }}</div>
+                        <div class="mb-3"><label class="form-label">Kategori</label> {{ form.category }}</div>
+                        <div class="mb-3"><label class="form-label">Taksit (Yoksa 0)</label>
+                            {{ form.installment_count }}
+                        </div>
                         <div class="mb-3 bg-light p-3 rounded d-flex align-items-center">
                             {{ form.is_recurring }}
                             <label class="form-check-label ms-2" for="id_is_recurring">
@@ -371,8 +444,11 @@
                         <div class="mb-3"><label class="form-label">Tarih</label> {{ form.date }}</div>
                         <div class="mb-3"><label class="form-label">Açıklama</label> {{ form.title }}</div>
                         <div class="mb-3"><label class="form-label">Tutar</label> {{ form.amount }}</div>
-                        <div class="mb-3"><label class="form-label">Taksit (Yoksa 0)</label> {{ form.installment_count
-                            }}</div>
+                        <div class="mb-3"><label class="form-label">Kategori</label> {{ form.category }}</div>
+                        <div class="mb-3"><label class="form-label">Taksit (Yoksa 0)</label>
+                            {{ form.installment_count }}
+                        </div>
+
                         <div class="mb-3 bg-light p-3 rounded d-flex align-items-center">
                             {{ form.is_recurring }}
                             <label class="form-check-label ms-2" for="id_is_recurring">
@@ -429,7 +505,50 @@
             scales: { y: { beginAtZero: true } }
         }
         });
+
+        // Kategori Dağılımı Pie Chart
+        {% if category_values %}
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ category_labels| safe }},
+            datasets: [{
+                data: {{ category_values| safe }},
+            backgroundColor: {{ pie_colors| safe }},
+            borderWidth: 0,
+            hoverOffset: 10
+                }]
+            },
+            options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
+                        font: { size: 11 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return context.label + ': ' + value.toLocaleString('tr-TR') + ' ₺ (' + percentage + '%)';
+                        }
+                    }
+                }
+            },
+            cutout: '60%'
+        }
+        });
+        {% endif %}
     </script>
+
 </body>
 
 </html>
