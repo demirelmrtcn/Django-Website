@@ -176,3 +176,56 @@ class CalendarEvent(models.Model):
         ordering = ['start_date']
         verbose_name = "Takvim Etkinliği"
         verbose_name_plural = "Takvim Etkinlikleri"
+
+
+# ============================================================
+# DECISION MAKER MODELS
+# ============================================================
+
+class DecisionWheel(models.Model):
+    """Kullanıcının kaydettiği karar çarkları"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, verbose_name="Çark Adı")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_template = models.BooleanField(default=False, verbose_name="Şablon mu?")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = "Karar Çarkı"
+        verbose_name_plural = "Karar Çarkları"
+
+
+class WheelOption(models.Model):
+    """Çarktaki seçenekler"""
+    wheel = models.ForeignKey(DecisionWheel, on_delete=models.CASCADE, related_name='options')
+    text = models.CharField(max_length=100, verbose_name="Seçenek")
+    color = models.CharField(max_length=20, default="#667eea", verbose_name="Renk")
+    order = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.wheel.name} - {self.text}"
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Çark Seçeneği"
+        verbose_name_plural = "Çark Seçenekleri"
+
+
+class DecisionHistory(models.Model):
+    """Karar geçmişi"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    wheel_name = models.CharField(max_length=100, verbose_name="Çark Adı")
+    result = models.CharField(max_length=100, verbose_name="Sonuç")
+    decided_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.wheel_name} → {self.result}"
+
+    class Meta:
+        ordering = ['-decided_at']
+        verbose_name = "Karar Geçmişi"
+        verbose_name_plural = "Karar Geçmişleri"

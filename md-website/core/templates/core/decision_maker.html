@@ -1,0 +1,999 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Karar Verici - Kişisel Asistan{% endblock %}
+{% block brand_title %}Karar Verici{% endblock %}
+
+{% block navbar_extra %}
+<a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-home me-1"></i>Ana Menü
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ============================================
+       WHEEL STYLES
+       ============================================ */
+    .wheel-container {
+        position: relative;
+        width: 100%;
+        max-width: 350px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .wheel-wrapper {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #wheelCanvas {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+    }
+
+    .wheel-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60px;
+        height: 60px;
+        background: white;
+        border-radius: 50%;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .wheel-center:hover {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .wheel-center i {
+        font-size: 24px;
+        color: var(--primary-start);
+    }
+
+    .wheel-pointer {
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 15px solid transparent;
+        border-right: 15px solid transparent;
+        border-top: 30px solid var(--danger-start);
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+        z-index: 20;
+    }
+
+    /* ============================================
+       COIN FLIP STYLES
+       ============================================ */
+    .coin-container {
+        perspective: 1000px;
+        width: 200px;
+        height: 200px;
+        margin: 0 auto;
+    }
+
+    .coin {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.1s;
+    }
+
+    .coin.flipping {
+        animation: coinFlip 2s ease-out forwards;
+    }
+
+    @keyframes coinFlip {
+        0% {
+            transform: rotateY(0deg);
+        }
+
+        100% {
+            transform: rotateY(1800deg);
+        }
+    }
+
+    .coin-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        font-weight: 700;
+        backface-visibility: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .coin-heads {
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: #8B4513;
+    }
+
+    .coin-tails {
+        background: linear-gradient(135deg, #C0C0C0, #808080);
+        color: #333;
+        transform: rotateY(180deg);
+    }
+
+    /* ============================================
+       OPTIONS INPUT STYLES
+       ============================================ */
+    .options-container {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        box-shadow: 0 10px 40px var(--shadow-color);
+    }
+
+    .option-input-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
+    }
+
+    .option-input-row input {
+        flex: 1;
+        padding: 12px 15px;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--bg-card);
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .option-input-row input:focus {
+        outline: none;
+        border-color: var(--primary-start);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    }
+
+    .option-color {
+        width: 45px;
+        height: 45px;
+        border: none;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .option-remove {
+        width: 45px;
+        height: 45px;
+        border: none;
+        border-radius: var(--radius-md);
+        background: var(--danger-start);
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .option-remove:hover {
+        background: var(--danger-end);
+        transform: scale(1.1);
+    }
+
+    /* ============================================
+       MODE TABS
+       ============================================ */
+    .mode-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .mode-tab {
+        padding: 15px 25px;
+        border: none;
+        border-radius: var(--radius-full);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px var(--shadow-color);
+    }
+
+    .mode-tab:hover {
+        transform: translateY(-2px);
+    }
+
+    .mode-tab.active {
+        background: var(--primary-gradient);
+        color: white;
+    }
+
+    /* ============================================
+       RESULT DISPLAY
+       ============================================ */
+    .result-display {
+        text-align: center;
+        padding: 30px;
+        margin-top: 20px;
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 40px var(--shadow-color);
+        display: none;
+    }
+
+    .result-display.show {
+        display: block;
+        animation: resultPopup 0.5s ease;
+    }
+
+    @keyframes resultPopup {
+        0% {
+            transform: scale(0.8);
+            opacity: 0;
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .result-text {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-start);
+        margin-bottom: 10px;
+    }
+
+    .result-label {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    /* ============================================
+       SPIN BUTTON
+       ============================================ */
+    .spin-btn {
+        width: 100%;
+        padding: 18px;
+        border: none;
+        border-radius: var(--radius-full);
+        background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+        color: white;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        margin-top: 20px;
+    }
+
+    .spin-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 35px rgba(255, 107, 107, 0.5);
+    }
+
+    .spin-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* ============================================
+       SAVED WHEELS
+       ============================================ */
+    .saved-wheel-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 5px 20px var(--shadow-color);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .saved-wheel-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 8px 30px var(--shadow-color);
+    }
+
+    /* ============================================
+       LIST MODE
+       ============================================ */
+    .list-mode-container {
+        display: none;
+    }
+
+    .list-mode-container.active {
+        display: block;
+    }
+
+    .list-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background: var(--bg-card);
+        border-radius: var(--radius-md);
+        margin-bottom: 10px;
+        box-shadow: 0 4px 15px var(--shadow-color);
+        transition: all 0.3s ease;
+    }
+
+    .list-item.selected {
+        background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+        color: white;
+        transform: scale(1.02);
+    }
+
+    /* ============================================
+       RECENT DECISIONS
+       ============================================ */
+    .history-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 15px;
+        background: var(--bg-card-secondary);
+        border-radius: var(--radius-md);
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .history-result {
+        font-weight: 600;
+        color: var(--primary-start);
+    }
+
+    .history-date {
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
+    /* ============================================
+       CONFETTI
+       ============================================ */
+    .confetti {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1000;
+        overflow: hidden;
+    }
+
+    .confetti-piece {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        animation: confettiFall 3s ease-out forwards;
+    }
+
+    @keyframes confettiFall {
+        0% {
+            transform: translateY(-100px) rotate(0deg);
+            opacity: 1;
+        }
+
+        100% {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Left Column: Wheel/Coin -->
+    <div class="col-lg-7 mb-4">
+        <!-- Mode Tabs -->
+        <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="wheel">
+                <i class="fas fa-sync-alt me-2"></i>Şans Çarkı
+            </button>
+            <button class="mode-tab" data-mode="coin">
+                <i class="fas fa-coins me-2"></i>Yazı-Tura
+            </button>
+            <button class="mode-tab" data-mode="list">
+                <i class="fas fa-list me-2"></i>Liste
+            </button>
+        </div>
+
+        <!-- Wheel Mode -->
+        <div id="wheelMode" class="mode-content">
+            <div class="wheel-container">
+                <div class="wheel-pointer"></div>
+                <div class="wheel-wrapper">
+                    <canvas id="wheelCanvas" width="400" height="400"></canvas>
+                    <div class="wheel-center" onclick="spinWheel()">
+                        <i class="fas fa-play"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coin Mode -->
+        <div id="coinMode" class="mode-content" style="display: none;">
+            <div class="coin-container">
+                <div class="coin" id="coin">
+                    <div class="coin-face coin-heads">Y</div>
+                    <div class="coin-face coin-tails">T</div>
+                </div>
+            </div>
+            <button class="spin-btn" onclick="flipCoin()">
+                <i class="fas fa-sync-alt me-2"></i>Yazı-Tura At!
+            </button>
+        </div>
+
+        <!-- List Mode -->
+        <div id="listMode" class="mode-content" style="display: none;">
+            <div id="listItems"></div>
+            <button class="spin-btn" onclick="selectRandom()">
+                <i class="fas fa-random me-2"></i>Rastgele Seç!
+            </button>
+        </div>
+
+        <!-- Result Display -->
+        <div class="result-display" id="resultDisplay">
+            <div class="result-label">🎉 Sonuç:</div>
+            <div class="result-text" id="resultText"></div>
+        </div>
+    </div>
+
+    <!-- Right Column: Options -->
+    <div class="col-lg-5">
+        <div class="options-container">
+            <h5 class="mb-4">
+                <i class="fas fa-edit me-2" style="color: var(--primary-start);"></i>
+                Seçenekler
+            </h5>
+
+            <div id="optionsInputs">
+                <!-- Options will be added here -->
+            </div>
+
+            <button class="btn btn-outline-primary w-100 mb-3" onclick="addOption()">
+                <i class="fas fa-plus me-2"></i>Seçenek Ekle
+            </button>
+
+            <hr>
+
+            <div class="d-flex gap-2">
+                <button class="spin-btn flex-grow-1" onclick="spinWheel()" id="mainSpinBtn">
+                    <i class="fas fa-play me-2"></i>ÇEVİR!
+                </button>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-outline-secondary flex-grow-1" data-bs-toggle="modal"
+                    data-bs-target="#saveModal">
+                    <i class="fas fa-save me-2"></i>Kaydet
+                </button>
+                <button class="btn btn-outline-secondary flex-grow-1" data-bs-toggle="modal"
+                    data-bs-target="#loadModal">
+                    <i class="fas fa-folder-open me-2"></i>Yükle
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Decisions -->
+        {% if recent_decisions %}
+        <div class="options-container mt-4">
+            <h6 class="mb-3">
+                <i class="fas fa-history me-2" style="color: var(--primary-start);"></i>
+                Son Kararlar
+            </h6>
+            {% for decision in recent_decisions %}
+            <div class="history-item">
+                <div>
+                    <span class="history-result">{{ decision.result }}</span>
+                    <small class="text-muted ms-2">({{ decision.wheel_name }})</small>
+                </div>
+                <span class="history-date">{{ decision.decided_at|timesince }} önce</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Save Modal -->
+<div class="modal fade" id="saveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #FF6B6B, #4ECDC4); color: white;">
+                <h5 class="modal-title"><i class="fas fa-save me-2"></i>Çarkı Kaydet</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Çark Adı</label>
+                <input type="text" class="form-control" id="wheelName" placeholder="Örn: Akşam Yemeği">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="saveWheel()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load Modal -->
+<div class="modal fade" id="loadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #FF6B6B, #4ECDC4); color: white;">
+                <h5 class="modal-title"><i class="fas fa-folder-open me-2"></i>Kayıtlı Çarklar</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {% if saved_wheels %}
+                {% for wheel in saved_wheels %}
+                <div class="saved-wheel-card" onclick="loadWheel({{ wheel.id }})">
+                    <div>
+                        <strong>{{ wheel.name }}</strong>
+                        <small class="text-muted d-block">{{ wheel.options.count }} seçenek</small>
+                    </div>
+                    <a href="{% url 'delete_wheel' wheel.id %}" class="btn btn-sm btn-outline-danger"
+                        onclick="event.stopPropagation(); return confirm('Bu çarkı silmek istediğinize emin misiniz?');">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
+                    Henüz kayıtlı çark yok
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confetti Container -->
+<div class="confetti" id="confetti"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ============================================
+    // GLOBAL STATE
+    // ============================================
+    const WHEEL_COLORS = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+        '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+        '#BB8FCE', '#85C1E9', '#F8B500', '#00CED1'
+    ];
+
+    let options = [
+        { text: 'Seçenek 1', color: WHEEL_COLORS[0] },
+        { text: 'Seçenek 2', color: WHEEL_COLORS[1] }
+    ];
+
+    let isSpinning = false;
+    let currentMode = 'wheel';
+
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function () {
+        renderOptionsInputs();
+        renderWheel();
+        setupModeTabs();
+    });
+
+    // ============================================
+    // MODE TABS
+    // ============================================
+    function setupModeTabs() {
+        document.querySelectorAll('.mode-tab').forEach(tab => {
+            tab.addEventListener('click', function () {
+                const mode = this.dataset.mode;
+                currentMode = mode;
+
+                // Update active tab
+                document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+
+                // Show/hide content
+                document.querySelectorAll('.mode-content').forEach(c => c.style.display = 'none');
+                document.getElementById(mode + 'Mode').style.display = 'block';
+
+                // Update main button
+                const mainBtn = document.getElementById('mainSpinBtn');
+                if (mode === 'wheel') {
+                    mainBtn.innerHTML = '<i class="fas fa-play me-2"></i>ÇEVİR!';
+                    mainBtn.onclick = spinWheel;
+                } else if (mode === 'coin') {
+                    mainBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>YAZI-TURA AT!';
+                    mainBtn.onclick = flipCoin;
+                } else {
+                    mainBtn.innerHTML = '<i class="fas fa-random me-2"></i>RASTGELE SEÇ!';
+                    mainBtn.onclick = selectRandom;
+                    renderListItems();
+                }
+
+                hideResult();
+            });
+        });
+    }
+
+    // ============================================
+    // OPTIONS MANAGEMENT
+    // ============================================
+    function renderOptionsInputs() {
+        const container = document.getElementById('optionsInputs');
+        container.innerHTML = '';
+
+        options.forEach((opt, index) => {
+            const row = document.createElement('div');
+            row.className = 'option-input-row';
+            row.innerHTML = `
+                <input type="text" value="${opt.text}" placeholder="Seçenek ${index + 1}"
+                       onchange="updateOption(${index}, 'text', this.value)">
+                <input type="color" class="option-color" value="${opt.color}"
+                       onchange="updateOption(${index}, 'color', this.value)">
+                ${options.length > 2 ? `
+                    <button class="option-remove" onclick="removeOption(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                ` : '<div style="width: 45px;"></div>'}
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    function addOption() {
+        const colorIndex = options.length % WHEEL_COLORS.length;
+        options.push({ text: `Seçenek ${options.length + 1}`, color: WHEEL_COLORS[colorIndex] });
+        renderOptionsInputs();
+        renderWheel();
+        renderListItems();
+    }
+
+    function removeOption(index) {
+        if (options.length > 2) {
+            options.splice(index, 1);
+            renderOptionsInputs();
+            renderWheel();
+            renderListItems();
+        }
+    }
+
+    function updateOption(index, field, value) {
+        options[index][field] = value;
+        renderWheel();
+        renderListItems();
+    }
+
+    // ============================================
+    // WHEEL RENDERING & SPINNING (Canvas-based)
+    // ============================================
+
+    let currentRotation = 0;
+    let canvas, ctx;
+
+    function renderWheel() {
+        canvas = document.getElementById('wheelCanvas');
+        ctx = canvas.getContext('2d');
+
+        const size = canvas.width;
+        const centerX = size / 2;
+        const centerY = size / 2;
+        const radius = size / 2 - 5;
+
+        ctx.clearRect(0, 0, size, size);
+
+        const n = options.length;
+        const segmentAngle = (2 * Math.PI) / n;
+
+        // Draw segments - start from top (negative Y axis = -PI/2)
+        const startOffset = -Math.PI / 2;
+
+        options.forEach((opt, i) => {
+            const startAngle = startOffset + (i * segmentAngle);
+            const endAngle = startOffset + ((i + 1) * segmentAngle);
+
+            // Draw segment
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.closePath();
+            ctx.fillStyle = opt.color;
+            ctx.fill();
+
+            // Draw border
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw text at segment center
+            const midAngle = startAngle + (segmentAngle / 2);
+            const textRadius = radius * 0.65;
+            const textX = centerX + Math.cos(midAngle) * textRadius;
+            const textY = centerY + Math.sin(midAngle) * textRadius;
+
+            ctx.save();
+            ctx.translate(textX, textY);
+            ctx.rotate(midAngle + Math.PI / 2); // Rotate text to be readable
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 3;
+
+            // Truncate long text
+            let text = opt.text;
+            if (text.length > 12) text = text.substring(0, 10) + '...';
+            ctx.fillText(text, 0, 0);
+            ctx.restore();
+        });
+
+        // Reset rotation
+        currentRotation = 0;
+        canvas.style.transition = 'none';
+        canvas.style.transform = 'rotate(0deg)';
+    }
+
+    function spinWheel() {
+        if (isSpinning || options.length < 2) return;
+        isSpinning = true;
+
+        canvas = document.getElementById('wheelCanvas');
+        hideResult();
+
+        const n = options.length;
+        const segmentAngleDeg = 360 / n;
+
+        // Pick random winner
+        const winnerIndex = Math.floor(Math.random() * n);
+
+        // Base spins (5-10 full rotations)
+        const baseSpins = (Math.floor(Math.random() * 5) + 5) * 360;
+
+        /**
+         * TARGET CALCULATION:
+         * - Pointer is at TOP
+         * - Segment 0 starts at top, segment i center is at: (i + 0.5) * segmentAngle from top
+         * - To land on segment i center, rotate by: 360 - ((i + 0.5) * segmentAngle)
+         * - Add jitter for natural feel
+         */
+        const segmentCenterFromTop = (winnerIndex + 0.5) * segmentAngleDeg;
+        const jitter = (Math.random() - 0.5) * segmentAngleDeg * 0.5;
+        const rotationNeeded = 360 - segmentCenterFromTop + jitter;
+
+        const targetAngle = baseSpins + rotationNeeded;
+        currentRotation += targetAngle;
+
+        // Apply rotation animation
+        canvas.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+        canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+        setTimeout(() => {
+            showResult(options[winnerIndex].text);
+            saveDecisionHistory(options[winnerIndex].text);
+            triggerConfetti();
+            isSpinning = false;
+        }, 4000);
+    }
+
+    // ============================================
+    // COIN FLIP
+    // ============================================
+    function flipCoin() {
+        if (isSpinning) return;
+        isSpinning = true;
+
+        const coin = document.getElementById('coin');
+        hideResult();
+
+        // Reset animation
+        coin.classList.remove('flipping');
+        coin.style.transform = 'rotateY(0deg)';
+
+        // Force reflow
+        void coin.offsetWidth;
+
+        // Random result
+        const isHeads = Math.random() < 0.5;
+        const result = isHeads ? 'Yazı' : 'Tura';
+
+        // Apply flip animation
+        coin.classList.add('flipping');
+
+        setTimeout(() => {
+            coin.classList.remove('flipping');
+            coin.style.transform = isHeads ? 'rotateY(0deg)' : 'rotateY(180deg)';
+            showResult(result);
+            saveDecisionHistory(result, 'Yazı-Tura');
+            triggerConfetti();
+            isSpinning = false;
+        }, 2000);
+    }
+
+    // ============================================
+    // LIST MODE
+    // ============================================
+    function renderListItems() {
+        const container = document.getElementById('listItems');
+        container.innerHTML = '';
+
+        options.forEach((opt, index) => {
+            const item = document.createElement('div');
+            item.className = 'list-item';
+            item.id = `listItem${index}`;
+            item.innerHTML = `
+                <div class="me-3" style="width: 20px; height: 20px; border-radius: 50%; background: ${opt.color};"></div>
+                <span>${opt.text}</span>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    function selectRandom() {
+        if (isSpinning || options.length < 2) return;
+        isSpinning = true;
+        hideResult();
+
+        // Clear previous selection
+        document.querySelectorAll('.list-item').forEach(item => item.classList.remove('selected'));
+
+        // Rapid highlight animation
+        let iterations = 0;
+        const maxIterations = 20 + Math.floor(Math.random() * 10);
+        let currentIndex = 0;
+        let delay = 50;
+
+        function highlight() {
+            document.querySelectorAll('.list-item').forEach(item => item.classList.remove('selected'));
+            const item = document.getElementById(`listItem${currentIndex}`);
+            if (item) item.classList.add('selected');
+
+            currentIndex = (currentIndex + 1) % options.length;
+            iterations++;
+
+            if (iterations < maxIterations) {
+                delay += iterations * 5; // Slow down gradually
+                setTimeout(highlight, delay);
+            } else {
+                // Final selection
+                const winnerIndex = Math.floor(Math.random() * options.length);
+                document.querySelectorAll('.list-item').forEach(item => item.classList.remove('selected'));
+                document.getElementById(`listItem${winnerIndex}`).classList.add('selected');
+
+                showResult(options[winnerIndex].text);
+                saveDecisionHistory(options[winnerIndex].text);
+                triggerConfetti();
+                isSpinning = false;
+            }
+        }
+
+        highlight();
+    }
+
+    // ============================================
+    // RESULT DISPLAY
+    // ============================================
+    function showResult(text) {
+        const display = document.getElementById('resultDisplay');
+        const resultText = document.getElementById('resultText');
+        resultText.textContent = text;
+        display.classList.add('show');
+    }
+
+    function hideResult() {
+        document.getElementById('resultDisplay').classList.remove('show');
+    }
+
+    // ============================================
+    // CONFETTI
+    // ============================================
+    function triggerConfetti() {
+        const container = document.getElementById('confetti');
+        container.innerHTML = '';
+
+        const colors = WHEEL_COLORS;
+
+        for (let i = 0; i < 100; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + '%';
+            piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.animationDelay = Math.random() * 0.5 + 's';
+            piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            container.appendChild(piece);
+        }
+
+        setTimeout(() => {
+            container.innerHTML = '';
+        }, 4000);
+    }
+
+    // ============================================
+    // SAVE / LOAD
+    // ============================================
+    function saveWheel() {
+        const name = document.getElementById('wheelName').value.trim() || 'Adsız Çark';
+
+        fetch('{% url "save_wheel" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ name, options })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Çark kaydedildi!');
+                    location.reload();
+                } else {
+                    alert('Hata: ' + data.error);
+                }
+            })
+            .catch(err => alert('Bir hata oluştu!'));
+    }
+
+    function loadWheel(id) {
+        fetch(`{% url 'get_wheel' 0 %}`.replace('0', id))
+            .then(response => response.json())
+            .then(data => {
+                options = data.options.map(opt => ({
+                    text: opt.text,
+                    color: opt.color
+                }));
+                renderOptionsInputs();
+                renderWheel();
+                renderListItems();
+                bootstrap.Modal.getInstance(document.getElementById('loadModal')).hide();
+            })
+            .catch(err => alert('Yükleme hatası!'));
+    }
+
+    function saveDecisionHistory(result, wheelName = null) {
+        const name = wheelName || document.getElementById('wheelName')?.value || 'Şans Çarkı';
+
+        fetch('{% url "save_decision_history" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ wheel_name: name, result })
+        }).catch(() => { });
+    }
+</script>
+{% endblock %}

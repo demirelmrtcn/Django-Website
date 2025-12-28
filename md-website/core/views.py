@@ -5,7 +5,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.http import StreamingHttpResponse, FileResponse, JsonResponse
 from django.db import transaction
-from .models import Transaction, TrackedProduct, PriceHistory, Note, CalendarEvent
+from .models import Transaction, TrackedProduct, PriceHistory, Note, CalendarEvent, DecisionWheel, WheelOption, DecisionHistory
 from .forms import TransactionForm, AddProductForm
 from .utils import get_product_details
 import datetime
@@ -654,4 +654,91 @@ def download_media(request):
             return JsonResponse({'error': f'İndirme hatası: {error_msg[:100]}'}, status=400)
     except Exception as e:
         return JsonResponse({'error': f'Bir hata oluştu: {str(e)[:100]}'}, status=500)
+
+
+# ============================================================
+# DECISION MAKER VIEWS
+# ============================================================
+
+@login_required
+def decision_maker_dashboard(request):
+    """Ana karar verici sayfası"""
+    saved_wheels = DecisionWheel.objects.filter(user=request.user, is_template=False)
+    template_wheels = DecisionWheel.objects.filter(is_template=True)
+    recent_decisions = DecisionHistory.objects.filter(user=request.user)[:10]
+    
+    return render(request, 'core/decision_maker.html', {
+        'saved_wheels': saved_wheels,
+        'template_wheels': template_wheels,
+        'recent_decisions': recent_decisions,
+    })
+
+
+@login_required
+@require_POST
+def save_wheel(request):
+    """Çarkı kaydet (AJAX)"""
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', 'Yeni Çark')
+        options = data.get('options', [])
+        
+        if len(options) < 2:
+            return JsonResponse({'success': False, 'error': 'En az 2 seçenek gerekli!'}, status=400)
+        
+        wheel = DecisionWheel.objects.create(user=request.user, name=name)
+        
+        for i, opt in enumerate(options):
+            WheelOption.objects.create(
+                wheel=wheel,
+                text=opt.get('text', ''),
+                color=opt.get('color', '#667eea'),
+                order=i
+            )
+        
+        return JsonResponse({'success': True, 'id': wheel.id, 'name': wheel.name})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def get_wheel(request, id):
+    """Kayıtlı çarkı getir (AJAX)"""
+    wheel = get_object_or_404(DecisionWheel, id=id)
+    
+    # Eğer şablon değilse sadece sahibi görebilir
+    if not wheel.is_template and wheel.user != request.user:
+        return JsonResponse({'error': 'Yetkisiz erişim!'}, status=403)
+    
+    options = list(wheel.options.values('text', 'color', 'order'))
+    return JsonResponse({
+        'id': wheel.id,
+        'name': wheel.name,
+        'options': options
+    })
+
+
+@login_required
+def delete_wheel(request, id):
+    """Çarkı sil"""
+    wheel = get_object_or_404(DecisionWheel, id=id, user=request.user)
+    wheel.delete()
+    return redirect('decision_maker')
+
+
+@login_required
+@require_POST
+def save_decision_history(request):
+    """Kararı geçmişe kaydet (AJAX)"""
+    try:
+        data = json.loads(request.body)
+        DecisionHistory.objects.create(
+            user=request.user,
+            wheel_name=data.get('wheel_name', 'Adsız'),
+            result=data.get('result', '')
+        )
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 
