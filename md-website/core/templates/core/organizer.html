@@ -204,8 +204,86 @@
         border-bottom: 1px solid var(--border-color);
     }
 
+    /* Quill toolbar buttons - dark mode */
+    .ql-toolbar .ql-stroke {
+        stroke: var(--text-primary);
+    }
+
+    .ql-toolbar .ql-fill {
+        fill: var(--text-primary);
+    }
+
+    .ql-toolbar .ql-picker {
+        color: var(--text-primary);
+    }
+
+    .ql-toolbar .ql-picker-options {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+    }
+
+    .ql-toolbar .ql-picker-item:hover,
+    .ql-toolbar button:hover {
+        color: var(--primary-start);
+    }
+
+    .ql-toolbar button:hover .ql-stroke {
+        stroke: var(--primary-start);
+    }
+
+    .ql-toolbar button:hover .ql-fill {
+        fill: var(--primary-start);
+    }
+
+    .ql-toolbar button.ql-active .ql-stroke {
+        stroke: var(--primary-start);
+    }
+
+    .ql-toolbar button.ql-active .ql-fill {
+        fill: var(--primary-start);
+    }
+
+    /* Quill editor content area */
     .ql-editor {
         min-height: 200px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
+
+    .ql-editor.ql-blank::before {
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    /* Quill editor links and blockquotes */
+    .ql-editor a {
+        color: var(--primary-start);
+    }
+
+    .ql-editor blockquote {
+        border-left: 4px solid var(--primary-start);
+        background: var(--bg-card-secondary);
+        color: var(--text-secondary);
+    }
+
+    .ql-editor code,
+    .ql-editor pre {
+        background: var(--bg-card-secondary);
+        color: var(--text-primary);
+        border-radius: var(--radius-sm);
+    }
+
+    .ql-snow .ql-tooltip {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        box-shadow: 0 4px 20px var(--shadow-color);
+    }
+
+    .ql-snow .ql-tooltip input[type=text] {
+        background: var(--bg-card-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
     }
 
     /* ====================== CALENDAR SECTION ====================== */
