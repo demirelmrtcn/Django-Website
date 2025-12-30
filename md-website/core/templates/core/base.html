@@ -6,14 +6,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="{% block meta_description %}Kişisel Asistan - Hayatınızı kolaylaştıran araçlar{% endblock %}">
+        content="{% block meta_description %}MyraMert - Hayatınızı kolaylaştıran araçlar{% endblock %}">
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon.png' %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/favicon.png' %}">
 
-    <title>{% block title %}Kişisel Asistan{% endblock %}</title>
+    <title>{% block title %}MyraMert{% endblock %}</title>
 
     <!-- Google Fonts - Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,8 +39,8 @@
     <nav class="navbar navbar-custom">
         <div class="container">
             <a class="navbar-brand" href="{% url 'dashboard' %}">
-                <i class="fas fa-rocket"></i>
-                <span>{% block brand_title %}Kişisel Asistan{% endblock %}</span>
+                <img src="{% static 'images/favicon.png' %}" alt="MyraMert" class="navbar-logo">
+                <span class="brand-text">MyraMert{% block page_subtitle %}{% endblock %}</span>
             </a>
             <div class="d-flex align-items-center gap-3">
                 {% block navbar_extra %}{% endblock %}

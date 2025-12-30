@@ -11,24 +11,24 @@
     --primary-start: #667eea;
     --primary-end: #764ba2;
     --primary-gradient: linear-gradient(135deg, var(--primary-start), var(--primary-end));
-    
+
     /* Semantic Colors */
     --success-start: #10b981;
     --success-end: #34d399;
     --success-gradient: linear-gradient(135deg, var(--success-start), var(--success-end));
-    
+
     --danger-start: #ef4444;
     --danger-end: #f87171;
     --danger-gradient: linear-gradient(135deg, var(--danger-start), var(--danger-end));
-    
+
     --warning-start: #f59e0b;
     --warning-end: #fbbf24;
     --warning-gradient: linear-gradient(135deg, var(--warning-start), var(--warning-end));
-    
+
     --accent-start: #11998e;
     --accent-end: #38ef7d;
     --accent-gradient: linear-gradient(135deg, var(--accent-start), var(--accent-end));
-    
+
     /* Neutrals - Light Mode */
     --text-primary: #2d3748;
     --text-secondary: #718096;
@@ -39,7 +39,7 @@
     --bg-navbar: rgba(255, 255, 255, 0.95);
     --border-color: #e2e8f0;
     --shadow-color: rgba(0, 0, 0, 0.1);
-    
+
     /* Spacing Scale */
     --space-xs: 4px;
     --space-sm: 8px;
@@ -47,21 +47,21 @@
     --space-lg: 24px;
     --space-xl: 40px;
     --space-2xl: 60px;
-    
+
     /* Border Radius */
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 20px;
     --radius-xl: 25px;
     --radius-full: 50px;
-    
+
     /* Typography */
     --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     --font-weight-normal: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
-    
+
     /* Transitions */
     --transition-fast: 0.2s ease;
     --transition-base: 0.3s ease;
@@ -123,6 +123,17 @@ body {
 
 .navbar-custom .navbar-brand i {
     color: var(--primary-start);
+}
+
+.navbar-logo {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.brand-text {
+    font-size: 1.1rem;
 }
 
 /* ============================================
@@ -469,15 +480,15 @@ body {
         --space-xl: 24px;
         --space-2xl: 40px;
     }
-    
+
     .card-modern {
         padding: var(--space-md);
     }
-    
+
     .glass-section {
         padding: var(--space-lg);
     }
-    
+
     .btn-primary-gradient,
     .btn-success-gradient,
     .btn-danger-gradient,
@@ -519,7 +530,9 @@ body {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .loading-text {

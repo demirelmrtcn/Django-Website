@@ -853,6 +853,177 @@ def get_product_details(url):
                 data["seller"] = "Yves Rocher"
 
 
+        # --- OYSHO (Inditex Group) ---
+        elif "oysho" in url:
+            data["site"] = "Oysho"
+            data["seller"] = "Oysho"
+
+            # 1. JSON-LD Structured Data (En Güvenilir - Inditex grup standartı)
+            json_ld = get_json_ld(soup)
+            if json_ld:
+                # Başlık
+                data["title"] = json_ld.get("name", "Oysho Ürünü")
+                
+                # Fiyat (offers içinde)
+                if "offers" in json_ld:
+                    offers = json_ld["offers"]
+                    if isinstance(offers, list):
+                        offer = offers[0] if offers else {}
+                    else:
+                        offer = offers
+                    
+                    if "price" in offer:
+                        price_value = offer["price"]
+                        data["price"] = clean_price(str(price_value))
+                    
+                    # Orijinal fiyat (varsa)
+                    if "highPrice" in offer:
+                        data["original_price"] = clean_price(str(offer["highPrice"]))
+
+            # 2. Fallback: data-testid selectors (Inditex pattern)
+            if data["price"] == 0.0:
+                price_elem = soup.find(attrs={"data-testid": "product-price-item-price"})
+                if not price_elem:
+                    price_elem = soup.select_one(".product-price-item__price")
+                if not price_elem:
+                    price_elem = soup.select_one(".money-amount__main")
+                if price_elem:
+                    data["price"] = clean_price(price_elem.get_text())
+            
+            if not data["title"] or data["title"] == "Oysho Ürünü":
+                h1 = soup.find("h1", attrs={"data-testid": "main-info-name"})
+                if not h1:
+                    h1 = soup.select_one(".main-info__name")
+                if not h1:
+                    h1 = soup.find("h1")
+                if h1:
+                    data["title"] = h1.get_text(strip=True)
+
+
+        # --- STRADIVARIUS (Inditex Group) ---
+        elif "stradivarius" in url:
+            data["site"] = "Stradivarius"
+            data["seller"] = "Stradivarius"
+
+            # 1. JSON-LD Structured Data (Inditex grup standartı)
+            json_ld = get_json_ld(soup)
+            if json_ld:
+                # Başlık
+                data["title"] = json_ld.get("name", "Stradivarius Ürünü")
+                
+                # Fiyat (offers içinde)
+                if "offers" in json_ld:
+                    offers = json_ld["offers"]
+                    if isinstance(offers, list):
+                        offer = offers[0] if offers else {}
+                    else:
+                        offer = offers
+                    
+                    if "price" in offer:
+                        price_value = offer["price"]
+                        # Stradivarius fiyatı kuruş cinsinden verebilir (2790 = 27.90 TL)
+                        raw_price = clean_price(str(price_value))
+                        # Eğer fiyat çok büyükse (kuruş cinsinden), 100'e böl
+                        if raw_price > 10000:
+                            data["price"] = raw_price / 100
+                        else:
+                            data["price"] = raw_price
+                    
+                    # Orijinal fiyat
+                    if "highPrice" in offer:
+                        high = clean_price(str(offer["highPrice"]))
+                        if high > 10000:
+                            data["original_price"] = high / 100
+                        else:
+                            data["original_price"] = high
+
+            # 2. Fallback: data-testid selectors
+            if data["price"] == 0.0:
+                price_elem = soup.find(attrs={"data-testid": "product-price"})
+                if not price_elem:
+                    price_elem = soup.select_one(".product-price .STRPrice")
+                if not price_elem:
+                    price_elem = soup.select_one(".money-amount__main")
+                if price_elem:
+                    data["price"] = clean_price(price_elem.get_text())
+            
+            if not data["title"] or data["title"] == "Stradivarius Ürünü":
+                h1 = soup.find("h1", attrs={"data-testid": "product-name"})
+                if not h1:
+                    h1 = soup.find("h1")
+                if h1:
+                    data["title"] = h1.get_text(strip=True)
+
+
+        # --- MANGO ---
+        elif "mango.com" in url or "shop.mango" in url:
+            data["site"] = "Mango"
+            data["seller"] = "Mango"
+
+            # ============================================================
+            # MANGO FİYAT STRATEJİSİ:
+            # Meta tag'ler her zaman ORİJİNAL fiyatı verir (yanlış!)
+            # DOM'daki "finalPrice" class'ı gerçek satış fiyatını gösterir
+            # Önce DOM'a bak, sonra meta'ya fallback yap
+            # ============================================================
+
+            # 1. ÖNCELİK: DOM'dan indirimli fiyatı çek (finalPrice)
+            # Mango class pattern: SinglePrice_finalPrice__xxxxx
+            final_price_elem = soup.find(class_=lambda x: x and "finalPrice" in str(x))
+            if not final_price_elem:
+                final_price_elem = soup.find(class_=lambda x: x and "final" in str(x).lower() and "price" in str(x).lower())
+            
+            if final_price_elem:
+                data["price"] = clean_price(final_price_elem.get_text())
+            
+            # 2. Orijinal fiyat (çizili fiyat - crossed class)
+            crossed_elem = soup.find(class_=lambda x: x and "crossed" in str(x).lower())
+            if crossed_elem:
+                original = clean_price(crossed_elem.get_text())
+                if original > 0 and original != data["price"]:
+                    data["original_price"] = original
+
+            # 3. FALLBACK: Eğer DOM'dan fiyat bulunamadıysa meta tag'lere bak
+            if data["price"] == 0.0:
+                # Alt fiyatı bulmak için tüm fiyat span'larını tara
+                price_spans = soup.find_all("span", class_=lambda x: x and ("price" in str(x).lower() or "Price" in str(x)))
+                prices_found = []
+                for span in price_spans:
+                    text = span.get_text()
+                    if "TL" in text or "₺" in text:
+                        val = clean_price(text)
+                        if val > 0:
+                            prices_found.append(val)
+                
+                if prices_found:
+                    # En düşük fiyat satış fiyatıdır
+                    data["price"] = min(prices_found)
+                    if len(prices_found) > 1:
+                        data["original_price"] = max(prices_found)
+            
+            # 4. SON ÇARE: Meta tag (bu genelde orijinal fiyat olacak)
+            if data["price"] == 0.0:
+                price_meta = soup.find("meta", attrs={"itemprop": "price"})
+                if price_meta and price_meta.get("content"):
+                    data["price"] = clean_price(price_meta["content"])
+            
+            # BAŞLIK
+            name_elem = soup.find(attrs={"itemprop": "name"})
+            if name_elem:
+                data["title"] = name_elem.get_text(strip=True)
+            
+            if not data["title"]:
+                h1 = soup.find("h1")
+                if h1:
+                    data["title"] = h1.get_text(strip=True)
+                else:
+                    og_title = soup.find("meta", attrs={"property": "og:title"})
+                    if og_title and og_title.get("content"):
+                        data["title"] = og_title["content"].split(" - ")[0]
+                    else:
+                        data["title"] = "Mango Ürünü"
+
+
         else:
             print(f"UYARI: Desteklenmeyen site ({url})")
             return None
