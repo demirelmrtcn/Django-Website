@@ -16,21 +16,21 @@ def start():
     
     scheduler = BackgroundScheduler()
     
-    # Her 30 dakikada bir fiyat kontrolü yap
+    # Her 60 dakikada bir fiyat kontrolü yap
     scheduler.add_job(
         run_price_check,
         'interval',
-        minutes=30,
+        minutes=60,
         id='price_check_job',
         replace_existing=True,
         max_instances=1  # Aynı anda sadece bir instance çalışsın
     )
     
     scheduler.start()
-    logger.info("🤖 Otomatik fiyat takip sistemi başlatıldı! (Her 30 dakikada bir çalışacak)")
-    print("🤖 Otomatik fiyat takip sistemi başlatıldı! (Her 30 dakikada bir çalışacak)")
+    logger.info("🤖 Otomatik fiyat takip sistemi başlatıldı! (Her 60 dakikada bir çalışacak)")
+    print("🤖 Otomatik fiyat takip sistemi başlatıldı! (Her 60 dakikada bir çalışacak)")
     
-    # İlk kontrolü hemen yap (30 dakika bekleme)
+    # İlk kontrolü hemen yap (60 dakika bekleme)
     logger.info("🚀 İlk fiyat kontrolü başlatılıyor...")
     print("🚀 İlk fiyat kontrolü başlatılıyor...")
     run_price_check()

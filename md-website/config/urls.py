@@ -27,6 +27,8 @@ urlpatterns = [
 
     path('fiyat-takip/bot-baslat/', views.run_price_bot, name='run_price_bot'),
 
+    path('fiyat-takip/stoksuz-temizle/', views.delete_out_of_stock, name='delete_out_of_stock'),
+
     # --- MEDIA DOWNLOADER ---
     path('medya-indir/', views.media_downloader_dashboard, name='media_downloader'),
     path('medya-indir/download/', views.download_media, name='download_media'),

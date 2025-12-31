@@ -310,6 +310,28 @@ def price_tracking_dashboard(request):
         'products': products,
         'form': form,
         'chart_data': json.dumps(chart_data),
+        # İstatistikler
+        'total_products': products.count(),
+        'dropped_count': products.filter(last_status='dropped').count(),
+        'increased_count': products.filter(last_status='increased').count(),
+        'unique_emails': products.values('notification_email').distinct().count(),
+        'out_of_stock_count': products.filter(is_in_stock=False).count(),
+        'last_check_time': products.order_by('-last_checked').first().last_checked if products.exists() else None,
+        # Desteklenen siteler
+        'supported_sites': [
+            {'name': 'Trendyol', 'color': '#f27a1a'},
+            {'name': 'Hepsiburada', 'color': '#ff6000'},
+            {'name': 'Amazon', 'color': '#ff9900'},
+            {'name': 'Zara', 'color': '#000000'},
+            {'name': 'Sephora', 'color': '#000000'},
+            {'name': 'MAC', 'color': '#000000'},
+            {'name': 'Kiko', 'color': '#000000'},
+            {'name': 'Gratis', 'color': '#e91e63'},
+            {'name': 'Oysho', 'color': '#000000'},
+            {'name': 'Mango', 'color': '#000000'},
+            {'name': 'Bershka', 'color': '#000000'},
+            {'name': 'Yves Rocher', 'color': '#5a8f3e'},
+        ],
     }
     return render(request, 'core/price_tracking.html', context)
 
@@ -318,6 +340,22 @@ def price_tracking_dashboard(request):
 def delete_product(request, id):
     product = get_object_or_404(TrackedProduct, id=id, user=request.user)
     product.delete()
+    return redirect('price_tracking_dashboard')
+
+
+@login_required
+def delete_out_of_stock(request):
+    """Stokta olmayan tüm ürünleri sil"""
+    deleted_count = TrackedProduct.objects.filter(
+        user=request.user, 
+        is_in_stock=False
+    ).delete()[0]
+    
+    if deleted_count > 0:
+        messages.success(request, f"{deleted_count} stokta olmayan ürün silindi.")
+    else:
+        messages.info(request, "Silinecek stokta olmayan ürün bulunamadı.")
+    
     return redirect('price_tracking_dashboard')
 
 
@@ -410,7 +448,9 @@ def run_price_bot(request):
             connection = get_connection()
             try:
                 connection.open()
-            except:
+                print(f"✅ Mail sunucusuna bağlantı başarılı (smtp.gmail.com:587)")
+            except Exception as conn_err:
+                print(f"❌ Mail sunucu bağlantı hatası: {conn_err}")
                 connection = None
 
             for email, changes in email_queue.items():
@@ -491,8 +531,11 @@ def run_price_bot(request):
                                                      connection=connection)
                         msg.attach_alternative(html_body, "text/html")
                         msg.send(fail_silently=False)
+                        print(f"✅ Mail gönderildi: {email}")
                     except Exception as e:
-                        print(f"Mail hatası: {e}")
+                        print(f"❌ Mail hatası ({email}): {e}")
+                elif has_content and not connection:
+                    print(f"⚠️ Mail gönderilemedi ({email}): Sunucu bağlantısı yok")
 
             if connection:
                 connection.close()
@@ -504,15 +547,6 @@ def run_price_bot(request):
         }) + "\n"
 
     return StreamingHttpResponse(event_stream(), content_type='application/x-ndjson')
-
-
-# ============================================================
-# ORGANIZER - NOTES & CALENDAR VIEWS (REMOVED)
-# ============================================================
-# This feature has been removed from the application.
-# The organizer_dashboard, create_note, update_note, get_note, delete_note,
-# create_event, delete_event, and get_events views have been removed.
-# Models (Note, CalendarEvent) are preserved in models.py for future use.
 
 
 # ============================================================

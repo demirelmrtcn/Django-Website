@@ -128,6 +128,76 @@
         align-items: center;
         justify-content: center;
     }
+
+    /* DARK MODE FIX: Tablo ve form elemanları */
+    .data-table {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: 0 10px 40px var(--shadow-color);
+    }
+
+    .data-table .table {
+        color: var(--text-primary);
+        margin-bottom: 0;
+    }
+
+    [data-theme="dark"] .data-table {
+        background: #1e1e2e;
+    }
+
+    [data-theme="dark"] .data-table .table {
+        background: transparent;
+        --bs-table-bg: transparent;
+        color: #e9ecef;
+    }
+
+    [data-theme="dark"] .data-table thead {
+        background: #2d2d3d !important;
+    }
+
+    [data-theme="dark"] .data-table thead th {
+        color: #e9ecef;
+    }
+
+    [data-theme="dark"] .data-table tbody {
+        background: #1e1e2e;
+    }
+
+    [data-theme="dark"] .data-table tbody td {
+        background: transparent;
+        border-color: #2d2d3d;
+        color: #e9ecef;
+    }
+
+    [data-theme="dark"] .data-table tbody tr:hover {
+        background: #2d2d3d;
+    }
+
+    /* Modal form dark mode fix */
+    [data-theme="dark"] .modal-body .bg-light {
+        background: #2d2d3d !important;
+    }
+
+    [data-theme="dark"] .modal-body .bg-light label,
+    [data-theme="dark"] .modal-body .bg-light small {
+        color: #e9ecef !important;
+    }
+
+    /* Dark mode text visibility fixes */
+    [data-theme="dark"] .text-muted {
+        color: #adb5bd !important;
+    }
+
+    [data-theme="dark"] .stats-card h6.text-muted,
+    [data-theme="dark"] .mini-stat .text-muted {
+        color: #9ca3af !important;
+    }
+
+    [data-theme="dark"] .stats-card h2,
+    [data-theme="dark"] .mini-stat h5 {
+        color: var(--text-primary);
+    }
 </style>
 {% endblock %}
 

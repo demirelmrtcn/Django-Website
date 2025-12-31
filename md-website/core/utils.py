@@ -1024,6 +1024,62 @@ def get_product_details(url):
                         data["title"] = "Mango Ürünü"
 
 
+        # --- BERSHKA (Inditex Group) ---
+        elif "bershka" in url:
+            data["site"] = "Bershka"
+            data["seller"] = "Bershka"
+
+            # 1. JSON-LD Structured Data (Inditex standartı)
+            json_ld = get_json_ld(soup)
+            if json_ld:
+                data["title"] = json_ld.get("name", "Bershka Ürünü")
+                
+                if "offers" in json_ld:
+                    offers = json_ld["offers"]
+                    if isinstance(offers, list):
+                        offers = offers[0]
+                    if isinstance(offers, dict):
+                        price = offers.get("price") or offers.get("lowPrice")
+                        if price:
+                            data["price"] = clean_price(str(price))
+
+            # 2. DOM tabanlı fiyat (daha güvenilir - özellikle indirimler için)
+            # İndirimli fiyat öncelikli
+            discounted_price = soup.select_one(".current-price-elem--discounted")
+            if discounted_price:
+                data["price"] = clean_price(discounted_price.get_text())
+                
+                # Orijinal fiyat (çizili)
+                original_elem = soup.select_one(".current-price-elem.future-price__price-actual")
+                if original_elem:
+                    original = clean_price(original_elem.get_text())
+                    if original > data["price"]:
+                        data["original_price"] = original
+            elif data["price"] == 0.0:
+                # Normal fiyat (indirim yok)
+                regular_price = soup.select_one(".current-price-elem")
+                if regular_price:
+                    data["price"] = clean_price(regular_price.get_text())
+
+            # 3. data-testid ile alternatif
+            if data["price"] == 0.0:
+                price_testid = soup.find(attrs={"data-testid": lambda x: x and "price" in x.lower()})
+                if price_testid:
+                    data["price"] = clean_price(price_testid.get_text())
+
+            # Başlık fallback
+            if not data["title"]:
+                h1 = soup.find("h1")
+                if h1:
+                    data["title"] = h1.get_text(strip=True)
+                else:
+                    og_title = soup.find("meta", attrs={"property": "og:title"})
+                    if og_title and og_title.get("content"):
+                        data["title"] = og_title["content"].split(" | ")[0]
+                    else:
+                        data["title"] = "Bershka Ürünü"
+
+
         else:
             print(f"UYARI: Desteklenmeyen site ({url})")
             return None

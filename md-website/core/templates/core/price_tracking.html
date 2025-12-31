@@ -25,40 +25,125 @@
         background: rgba(255, 255, 255, 0.05);
     }
 
+    /* Stat Cards */
+    .stat-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 4px 15px var(--shadow-color);
+        transition: transform var(--transition-base);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .stat-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: var(--font-weight-bold);
+        line-height: 1.2;
+        color: var(--text-primary);
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Action Buttons */
     .btn-add-product {
-        background: var(--primary-gradient);
+        background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
         border: none;
         color: white;
         padding: 18px;
         border-radius: var(--radius-lg);
         font-weight: var(--font-weight-bold);
         transition: all var(--transition-base);
-        box-shadow: 0 10px 30px var(--shadow-color);
+        box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
     }
 
     .btn-add-product:hover {
         transform: translateY(-3px);
-        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 15px 40px rgba(245, 158, 11, 0.6);
         color: white;
     }
 
-    .btn-start-bot {
-        background: var(--warning-gradient);
-        border: none;
-        color: white;
+    .btn-quick-action {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
         padding: 18px;
         border-radius: var(--radius-lg);
-        font-weight: var(--font-weight-bold);
+        font-weight: var(--font-weight-semibold);
         transition: all var(--transition-base);
-        box-shadow: 0 10px 30px var(--shadow-color);
     }
 
-    .btn-start-bot:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 40px rgba(245, 158, 11, 0.4);
-        color: white;
+    .btn-quick-action:hover {
+        background: var(--bg-card-secondary);
+        color: var(--text-primary);
+        border-color: var(--primary-start);
     }
 
+    /* Supported Sites */
+    .supported-sites-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 12px 16px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 15px var(--shadow-color);
+    }
+
+    .site-badge {
+        font-size: 0.65rem;
+        padding: 4px 8px;
+        font-weight: 500;
+    }
+
+    /* Supported sites check icon - tema uyumlu */
+    .supported-check {
+        color: #6b7280;
+    }
+
+    [data-theme="dark"] .supported-check {
+        color: #10b981;
+    }
+
+    /* Dark mode button adaptations */
+    [data-theme="dark"] .btn-add-product {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        box-shadow: 0 10px 30px rgba(251, 191, 36, 0.35);
+    }
+
+    [data-theme="dark"] .btn-add-product:hover {
+        box-shadow: 0 15px 40px rgba(251, 191, 36, 0.5);
+    }
+
+
+    /* Product Table */
     .product-table {
         background: var(--bg-card);
         border-radius: var(--radius-lg);
@@ -81,6 +166,51 @@
 
     .product-table tbody tr:hover {
         background: var(--bg-card-secondary);
+    }
+
+    /* DARK MODE FIX: Ürün adı ve satıcı sütunları için tema uyumlu renkler */
+    .product-table .product-name-link {
+        color: var(--text-primary) !important;
+    }
+
+
+    .product-table .seller-name {
+        color: var(--text-primary) !important;
+    }
+
+    /* DARK MODE: Tablo arka planı ve metin renkleri */
+    [data-theme="dark"] .product-table {
+        background: #1e1e2e;
+    }
+
+    [data-theme="dark"] .product-table .table {
+        background: transparent;
+        --bs-table-bg: transparent;
+    }
+
+    [data-theme="dark"] .product-table tbody {
+        background: #1e1e2e;
+    }
+
+    [data-theme="dark"] .product-table tbody td {
+        background: transparent;
+        border-color: #2d2d3d;
+    }
+
+    [data-theme="dark"] .product-table .product-name-link {
+        color: #e9ecef !important;
+    }
+
+    [data-theme="dark"] .product-table .seller-name {
+        color: #e9ecef !important;
+    }
+
+    [data-theme="dark"] .product-table .text-muted {
+        color: #adb5bd !important;
+    }
+
+    [data-theme="dark"] .product-table tbody tr:hover {
+        background: #2d2d3d;
     }
 </style>
 {% endblock %}
@@ -106,22 +236,101 @@
         <i class="fas fa-robot fa-2x me-3"></i>
         <div>
             <strong class="d-block">Otomatik Fiyat Kontrolü Aktif!</strong>
-            <small>Sistem her 30 dakikada bir tüm ürünleri kontrol edip fiyat değişikliklerini bildirir.</small>
+            <small>Sistem her 60 dakikada bir tüm ürünleri kontrol edip fiyat değişikliklerini bildirir.</small>
         </div>
     </div>
 </div>
 
-<!-- Action Buttons -->
+<!-- Stats Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-8">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ total_products }}</div>
+                <div class="stat-label">Toplam Ürün</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value text-success">{{ dropped_count }}</div>
+                <div class="stat-label">Fiyat Düşen</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value text-danger">{{ increased_count }}</div>
+                <div class="stat-label">Fiyat Artan</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ unique_emails }}</div>
+                <div class="stat-label">Aktif Mail</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Row: Add Product + Quick Actions + Supported Sites -->
+<div class="row g-3 mb-4">
+    <div class="col-md-5">
         <button class="btn btn-add-product w-100" data-bs-toggle="modal" data-bs-target="#addProductModal">
             <i class="fas fa-plus-circle me-2"></i>TAKİP EDİLECEK ÜRÜN EKLE
         </button>
     </div>
+    <div class="col-md-3">
+        <div class="dropdown w-100">
+            <button class="btn btn-quick-action w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-bolt me-2"></i>Hızlı Eylemler
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark w-100">
+                <li>
+                    <a class="dropdown-item" href="#" onclick="startBotProcess(); return false;">
+                        <i class="fas fa-sync-alt me-2 text-warning"></i>Şimdi Kontrol Et
+                    </a>
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li>
+                    <a class="dropdown-item {% if out_of_stock_count == 0 %}disabled{% endif %}"
+                        href="{% url 'delete_out_of_stock' %}"
+                        onclick="return confirm('{{ out_of_stock_count }} stokta olmayan ürün silinecek. Emin misiniz?');">
+                        <i class="fas fa-trash-alt me-2 text-danger"></i>Stokta Olmayanları Temizle
+                        {% if out_of_stock_count > 0 %}<span class="badge bg-danger ms-1">
+                            {{ out_of_stock_count }}</span>{% endif %}
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
     <div class="col-md-4">
-        <button class="btn btn-start-bot w-100" onclick="startBotProcess()">
-            <i class="fas fa-sync-alt me-2"></i> TAKİP BOTUNU BAŞLAT
-        </button>
+        <div class="supported-sites-card">
+            <div class="d-flex align-items-center flex-wrap gap-1">
+                <small class="supported-check me-2"><i class="fas fa-check-circle"></i></small>
+                {% for site in supported_sites %}
+                <span class="badge site-badge" style="background-color: {{ site.color }};">{{ site.name }}</span>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -148,8 +357,8 @@
                         <span class="badge bg-secondary">{{ product.site_name }}</span>
                     </td>
                     <td>
-                        <a href="{{ product.url }}" target="_blank" class="text-decoration-none fw-bold"
-                            style="color: var(--text-primary);">
+                        <a href="{{ product.url }}" target="_blank"
+                            class="text-decoration-none fw-bold product-name-link">
                             {% if product.custom_name %}
                             {{ product.custom_name }}
                             <div class="small text-muted fw-normal">{{ product.product_name|truncatechars:35 }}</div>
@@ -159,7 +368,7 @@
                         </a>
                     </td>
                     <td>
-                        <div class="small fw-bold" style="color: var(--text-primary);">
+                        <div class="small fw-bold seller-name">
                             {{ product.seller_name|default:"-"|truncatechars:15 }}
                         </div>
                     </td>
@@ -294,7 +503,7 @@
                         <label class="form-label fw-bold">Ürün Linki</label>
                         {{ form.url }}
                         <div class="form-text">Amazon, Hepsiburada, Sephora, Zara, Gratis, Trendyol, MAC Cosmetics, Kiko
-                            Milano, Yves Rocher linki yapıştırın.</div>
+                            Milano, Yves Rocher, Mango, Oysho, Stradivarius linki yapıştırın.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
