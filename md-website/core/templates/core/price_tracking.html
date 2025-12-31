@@ -1,4 +1,4 @@
-{% extends 'core/base.html' %}
+﻿{% extends 'core/base.html' %}
 {% load humanize %}
 {% load static %}
 
@@ -142,6 +142,59 @@
         box-shadow: 0 15px 40px rgba(251, 191, 36, 0.5);
     }
 
+    /* Product Selector Dropdown */
+    .product-selector {
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .product-selector label {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+    .product-dropdown {
+        max-width: 400px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 2px solid var(--border-color);
+        background: var(--bg-card);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .product-dropdown:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+        outline: none;
+    }
+
+    .product-selector label {
+        color: var(--text-primary) !important;
+    }
+
+    [data-theme="dark"] .product-selector label {
+        color: #e9ecef !important;
+    }
+
+    .product-dropdown:hover {
+        border-color: #10b981;
+    }
+
+    [data-theme="dark"] .product-dropdown {
+        background: #1e1e2e;
+        border-color: #3d3d5c;
+        color: #e9ecef;
+    }
+
+    [data-theme="dark"] .product-dropdown:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+    }
 
     /* Product Table */
     .product-table {
@@ -217,6 +270,7 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -311,9 +365,7 @@
                     <hr class="dropdown-divider">
                 </li>
                 <li>
-                    <a class="dropdown-item {% if out_of_stock_count == 0 %}disabled{% endif %}"
-                        href="{% url 'delete_out_of_stock' %}"
-                        onclick="return confirm('{{ out_of_stock_count }} stokta olmayan ürün silinecek. Emin misiniz?');">
+                    <a class="dropdown-item {% if out_of_stock_count == 0 %}disabled{% endif %}" href="{% url 'delete_out_of_stock' %}" onclick="return confirm('{{ out_of_stock_count }} stokta olmayan ürün silinecek. Emin misiniz?');">
                         <i class="fas fa-trash-alt me-2 text-danger"></i>Stokta Olmayanları Temizle
                         {% if out_of_stock_count > 0 %}<span class="badge bg-danger ms-1">
                             {{ out_of_stock_count }}</span>{% endif %}
@@ -357,8 +409,7 @@
                         <span class="badge bg-secondary">{{ product.site_name }}</span>
                     </td>
                     <td>
-                        <a href="{{ product.url }}" target="_blank"
-                            class="text-decoration-none fw-bold product-name-link">
+                        <a href="{{ product.url }}" target="_blank" class="text-decoration-none fw-bold product-name-link">
                             {% if product.custom_name %}
                             {{ product.custom_name }}
                             <div class="small text-muted fw-normal">{{ product.product_name|truncatechars:35 }}</div>
@@ -443,8 +494,7 @@
                     <td class="text-muted small">{{ product.notification_email|truncatechars:20 }}</td>
                     <td class="text-muted small text-nowrap">{{ product.last_checked|date:"d M H:i" }}</td>
                     <td class="text-center">
-                        <a href="{% url 'delete_product' product.id %}" class="btn btn-sm btn-outline-danger border-0"
-                            onclick="return confirm('Silmek istediğinize emin misiniz?');">
+                        <a href="{% url 'delete_product' product.id %}" class="btn btn-sm btn-outline-danger border-0" onclick="return confirm('Silmek istediğinize emin misiniz?');">
                             <i class="fas fa-trash-alt"></i>
                         </a>
                     </td>
@@ -462,17 +512,36 @@
     </div>
 </div>
 
-<!-- Price History Chart -->
+<!-- Price History Chart with Product Selector -->
 <div class="row">
     <div class="col-12">
         <div class="chart-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0"><i class="fas fa-chart-line me-2" style="color: var(--success-start);"></i> Fiyat
                     Değişim Grafiği</h5>
-                <small class="text-muted">Grafik üzerinde gezinerek detayları görebilirsiniz</small>
+                <span class="selected-product-name badge bg-primary px-3 py-2" id="selectedProductBadge" style="display: none;"></span>
             </div>
-            <div style="height: 400px;">
+
+            <div class="chart-wrapper" style="height: 350px; position: relative;">
                 <canvas id="priceHistoryChart"></canvas>
+                <div id="chartEmptyState" class="text-center py-5" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                    <i class="fas fa-chart-area fa-3x mb-3 text-secondary opacity-25"></i><br>
+                    <span class="text-muted">Bu ürün için henüz fiyat geçmişi yok.</span>
+                </div>
+            </div>
+
+            <!-- Product Selector Dropdown -->
+            <div class="product-selector mt-4" id="productSelector">
+                <label for="productSelect" class="form-label text-muted mb-2">
+                    <i class="fas fa-search me-1"></i> Grafiğini görmek istediğiniz ürünü seçiniz:
+                </label>
+                <select class="form-select product-dropdown" id="productSelect" onchange="selectProductFromDropdown(this)">
+                    {% for product in products_with_history %}
+                    <option value="{{ product.id }}" data-product-name="{{ product.custom_name|default:product.product_name }}" {% if forloop.first %} selected{% endif %}>{{ product.custom_name|default:product.product_name }}</option>
+                    {% empty %}
+                    <option value="">Henüz fiyat geçmişi olan ürün yok</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
     </div>
@@ -529,9 +598,7 @@
                 </div>
                 <h6 id="progressMessage" class="fw-bold mb-3">Hazırlanıyor...</h6>
                 <div class="progress" style="height: 25px;">
-                    <div id="botProgressBar"
-                        class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold"
-                        role="progressbar" style="width: 0%">0%</div>
+                    <div id="botProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 0%">0%</div>
                 </div>
                 <div class="mt-2 text-muted small">Lütfen pencereyi kapatmayın.</div>
             </div>
@@ -547,111 +614,169 @@
 
 {% block extra_js %}
 <script>
-    const chartData = JSON.parse('{{ chart_data|safe }}');
+    // All products data from backend
+    const allProductsData = JSON.parse('{{ chart_data|safe }}');
+    const isDarkMode = () => document.documentElement.getAttribute('data-theme') === 'dark';
 
-    if (chartData.datasets) {
-        chartData.datasets = chartData.datasets.filter(dataset => {
-            const validPoints = dataset.data.filter(point => point !== null && point !== undefined);
-            return validPoints.length >= 2;
-        });
-    }
+    let priceChart = null;
+    let currentProductId = null;
 
-    if (chartData.datasets && chartData.datasets.length > 0) {
-        const ctx = document.getElementById('priceHistoryChart').getContext('2d');
-
-        chartData.datasets.forEach((dataset, index) => {
-            if (dataset.label && dataset.label.length > 30) {
-                dataset.originalLabel = dataset.label;
-                dataset.label = dataset.label.substring(0, 27) + '...';
-            }
-            dataset.pointRadius = 5;
-            dataset.pointHoverRadius = 8;
-            dataset.pointBackgroundColor = dataset.borderColor;
-            dataset.borderWidth = 2.5;
-            dataset.tension = 0.4;
-            dataset.fill = false;
-        });
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: chartData.labels,
-                datasets: chartData.datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        align: 'start',
-                        maxHeight: 120,
-                        labels: {
-                            usePointStyle: true,
-                            boxWidth: 8,
-                            padding: 15,
-                            font: { size: 11 }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(33, 37, 41, 0.95)',
-                        titleColor: '#ffc107',
-                        titleFont: { size: 13, weight: 'bold' },
-                        bodyFont: { size: 13 },
-                        bodyColor: '#fff',
-                        padding: 15,
-                        cornerRadius: 8,
-                        displayColors: true,
-                        callbacks: {
-                            title: function (context) {
-                                return 'Tarih: ' + context[0].label;
-                            },
-                            label: function (context) {
-                                const dataset = context.dataset;
-                                let label = dataset.originalLabel || dataset.label || '';
-                                if (label) label += ': ';
-                                if (context.parsed.y !== null) {
-                                    label += context.parsed.y.toLocaleString('tr-TR') + ' ₺';
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        offset: true,
-                        grid: { display: false },
-                        ticks: { font: { size: 11 } }
-                    },
-                    y: {
-                        beginAtZero: false,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.06)',
-                            borderDash: [3, 3]
+    // Chart configuration
+    const chartConfig = {
+        type: 'line',
+        data: { datasets: [] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 800, easing: 'easeOutQuart' },
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(16, 185, 129, 0.95)',
+                    titleColor: '#fff',
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyFont: { size: 16.5, weight: '600' },
+                    bodyColor: '#fff',
+                    padding: 16,
+                    cornerRadius: 12,
+                    displayColors: false,
+                    callbacks: {
+                        title: function (context) {
+                            const date = new Date(context[0].parsed.x);
+                            return date.toLocaleDateString('tr-TR', {
+                                day: 'numeric', month: 'long', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
+                            });
                         },
-                        ticks: {
-                            padding: 10,
-                            font: { size: 11 },
-                            callback: function (value) {
-                                if (value >= 1000) {
-                                    return (value / 1000).toFixed(1) + 'K ₺';
-                                }
-                                return value.toLocaleString('tr-TR') + ' ₺';
-                            }
+                        label: function (context) {
+                            return context.parsed.y.toLocaleString('tr-TR') + ' ₺';
                         }
                     }
                 }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        displayFormats: { hour: 'd MMM HH:mm', day: 'd MMM', month: 'MMM yyyy' }
+                    },
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 11 },
+                        color: isDarkMode() ? '#9ca3af' : '#6b7280',
+                        maxTicksLimit: 6
+                    }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: {
+                        color: isDarkMode() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        padding: 10,
+                        font: { size: 12, weight: '500' },
+                        color: isDarkMode() ? '#9ca3af' : '#6b7280',
+                        callback: (val) => val >= 1000 ? (val / 1000).toFixed(1) + 'K ₺' : val.toLocaleString('tr-TR') + ' ₺'
+                    }
+                }
             }
-        });
-    } else {
-        document.getElementById('priceHistoryChart').parentElement.innerHTML =
-            '<div class="text-center text-muted py-5"><i class="fas fa-chart-line fa-3x mb-3 text-secondary opacity-25"></i><br>Grafik verisi oluşması için botun çalıştırılması ve fiyat değişimi yakalanması gerekmektedir.</div>';
+        }
+    };
+
+    // Initialize chart
+    function initChart() {
+        const ctx = document.getElementById('priceHistoryChart');
+        if (!ctx) return;
+        priceChart = new Chart(ctx.getContext('2d'), chartConfig);
+
+        // Auto-select first product from dropdown
+        const dropdown = document.getElementById('productSelect');
+        if (dropdown && dropdown.value) {
+            selectProductFromDropdown(dropdown);
+        }
     }
+
+    // Select from dropdown
+    function selectProductFromDropdown(selectElement) {
+        const productId = selectElement.value;
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const productName = selectedOption.dataset.productName || 'Ürün';
+
+        // Find product data
+        const productData = allProductsData.datasets.find(d => d.productId == productId);
+
+        // Update badge
+        const badge = document.getElementById('selectedProductBadge');
+        badge.textContent = productName;
+        badge.style.display = 'inline-block';
+
+        // Show/hide empty state
+        const emptyState = document.getElementById('chartEmptyState');
+        const canvas = document.getElementById('priceHistoryChart');
+
+        if (!productData || productData.data.length < 2) {
+            canvas.style.display = 'none';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        canvas.style.display = 'block';
+        emptyState.style.display = 'none';
+
+        // Calculate time range for proper x-axis scaling
+        const dates = productData.data.map(d => new Date(d.x).getTime());
+        const minDate = Math.min(...dates);
+        const maxDate = Math.max(...dates);
+        const timeRange = maxDate - minDate;
+
+        // Add 2% padding to time range (minimal for tight fit)
+        const padding = timeRange * 0.02 || 1800000; // min 30 min padding
+
+        // Update x-axis bounds dynamically
+        priceChart.options.scales.x.min = minDate - padding;
+        priceChart.options.scales.x.max = maxDate + padding;
+
+        // Create gradient
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+
+        // Update chart
+        priceChart.data.datasets = [{
+            label: productName,
+            data: productData.data,
+            borderColor: '#10b981',
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 8,
+            pointHoverRadius: 12,
+            pointBackgroundColor: '#10b981',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 3,
+            borderWidth: 4
+        }];
+
+        priceChart.update('default');
+        currentProductId = productId;
+    }
+
+    // Theme observer
+    const themeObs = new MutationObserver(() => {
+        if (priceChart) {
+            priceChart.options.scales.x.ticks.color = isDarkMode() ? '#9ca3af' : '#6b7280';
+            priceChart.options.scales.y.ticks.color = isDarkMode() ? '#9ca3af' : '#6b7280';
+            priceChart.options.scales.y.grid.color = isDarkMode() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+            priceChart.update('none');
+        }
+    });
+    themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', initChart);
 
     async function startBotProcess() {
         const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));

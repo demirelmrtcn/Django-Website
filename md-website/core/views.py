@@ -271,43 +271,62 @@ def price_tracking_dashboard(request):
 
     products = TrackedProduct.objects.filter(user=request.user).order_by('-last_checked')
 
-    # --- GRAFİK İÇİN VERİ HAZIRLIĞI ---
-    # Her ürün için tarihçeyi çekip Chart.js formatına çevireceğiz
+    # --- GRAFİK İÇİN VERİ HAZIRLIĞI (TIME SCALE) ---
+    # Her ürün için tarihçeyi çekip {x: timestamp, y: price} formatına çevireceğiz
     chart_data = {
-        'labels': [],  # Tarihler (Ortak eksen)
         'datasets': []
     }
 
     # Eğer ürün varsa grafik verisi oluştur
     if products.exists():
-        # Grafik renkleri (Otomatik renk atamak için basit bir liste)
-        colors = ['#0d6efd', '#dc3545', '#198754', '#ffc107', '#6f42c1', '#fd7e14', '#20c997']
+        # Grafik renkleri (Daha canlı ve ayırt edilebilir renkler)
+        colors = [
+            '#f59e0b',  # amber
+            '#10b981',  # emerald
+            '#3b82f6',  # blue
+            '#ef4444',  # red
+            '#8b5cf6',  # violet
+            '#ec4899',  # pink
+            '#14b8a6',  # teal
+            '#f97316',  # orange
+        ]
 
         for i, product in enumerate(products):
-            # Son 10 fiyat hareketini al
-            history = product.history.all().order_by('date')[:10]
+            # Son 15 fiyat hareketini al
+            history = product.history.all().order_by('date')[:15]
 
+            # Her veri noktası {x: timestamp, y: price} formatında
             data_points = []
-            labels = []
             for h in history:
-                data_points.append(float(h.price))
-                # Tarih formatı: "22 Ara 14:30"
-                labels.append(h.date.strftime('%d %b %H:%M'))
+                data_points.append({
+                    'x': h.date.isoformat(),  # ISO 8601 format: "2024-12-30T14:30:00"
+                    'y': float(h.price)
+                })
 
-            chart_data['datasets'].append({
-                'label': product.custom_name or product.product_name[:15],
-                'data': data_points,
-                'borderColor': colors[i % len(colors)],  # Renk sırasıyla
-                'fill': False,
-                'tension': 0.1
-            })
+            # Sadece en az 2 veri noktası olan ürünleri ekle
+            if len(data_points) >= 2:
+                chart_data['datasets'].append({
+                    'productId': product.id,  # JS için ürün ID
+                    'label': product.custom_name or product.product_name[:20],
+                    'data': data_points,
+                    'borderColor': colors[i % len(colors)],
+                    'backgroundColor': colors[i % len(colors)] + '20',
+                })
+            # Veri az olsa bile her ürünü ekle (JS tarafında empty state gösterecek)
+            else:
+                chart_data['datasets'].append({
+                    'productId': product.id,
+                    'label': product.custom_name or product.product_name[:20],
+                    'data': data_points,
+                    'borderColor': colors[i % len(colors)],
+                })
 
-            # Eksen etiketlerini (zamanı) son ürünün tarihine göre set edelim (Basit çözüm)
-            if len(labels) > len(chart_data['labels']):
-                chart_data['labels'] = labels
+    # Dropdown için sadece fiyat geçmişi olan ürünleri filtrele
+    products_with_history = [p for p in products if p.history.count() >= 2]
 
     context = {
         'products': products,
+        'products_with_history': products_with_history,  # Dropdown için
         'form': form,
         'chart_data': json.dumps(chart_data),
         # İstatistikler
