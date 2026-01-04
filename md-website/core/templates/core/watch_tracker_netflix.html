@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load l10n %}
 {% load static %}
 
 {% block title %}Dizi/Film Takip - MyraMD{% endblock %}
@@ -227,8 +228,12 @@
     }
 
     /* Enhanced Hover with Lift & Glow */
+    .netflix-card {
+        overflow: hidden;
+    }
+
     .netflix-card:hover {
-        transform: scale(1.15) translateY(-10px);
+        transform: scale(1.08) translateY(-10px);
         z-index: 999;
         filter: brightness(1.1);
     }
@@ -401,7 +406,7 @@
             <h1 class="hero-title">{{ featured.title }}</h1>
             <div class="hero-meta">
                 {% if featured.year %}
-                <span>{{ featured.year }}</span>
+                <span>{{ featured.year|unlocalize }}</span>
                 {% endif %}
                 {% if featured.rating %}
                 <span class="hero-rating">
@@ -451,6 +456,9 @@
                         <div class="item-title">{{ item.title }}</div>
                         <div class="item-meta">
                             <span>{{ item.get_item_type_display }}</span>
+                            {% if item.year %}
+                            <span>{{ item.year|unlocalize }}</span>
+                            {% endif %}
                             {% if item.progress_percentage > 0 %}
                             <span>{{ item.progress_percentage|floatformat:0 }}%</span>
                             {% endif %}
@@ -491,7 +499,7 @@
                         <div class="item-meta">
                             <span>{{ item.get_item_type_display }}</span>
                             {% if item.year %}
-                            <span>{{ item.year }}</span>
+                            <span>{{ item.year|unlocalize }}</span>
                             {% endif %}
                         </div>
                     </div>
@@ -522,6 +530,12 @@
                         <div class="item-title">{{ item.title }}</div>
                         <div class="item-meta">
                             <span>{{ item.get_item_type_display }}</span>
+                            {% if item.year %}
+                            <span>{{ item.year|unlocalize }}</span>
+                            {% endif %}
+                            {% if item.progress_percentage > 0 %}
+                            <span>{{ item.progress_percentage|floatformat:0 }}%</span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -551,6 +565,9 @@
                         <div class="item-title">{{ item.title }}</div>
                         <div class="item-meta">
                             <span>{{ item.get_item_type_display }}</span>
+                            {% if item.year %}
+                            <span>{{ item.year|unlocalize }}</span>
+                            {% endif %}
                             {% if item.rating %}
                             <span><i class="fas fa-star" style="color: #fbbf24;"></i> {{ item.rating }}</span>
                             {% endif %}
@@ -689,11 +706,16 @@
             </div>
         </div>
 
-        <!-- Save Button -->
+        <!-- Action Buttons -->
         <div class="modal-footer">
-            <button class="save-btn" onclick="saveChanges()">
-                <i class="fas fa-save"></i> Kaydet
-            </button>
+            <div class="modal-button-group">
+                <button class="delete-btn" onclick="confirmDelete()" title="Bu içeriği sil">
+                    <i class="fas fa-trash"></i> Sil
+                </button>
+                <button class="save-btn" onclick="saveChanges()">
+                    <i class="fas fa-save"></i> Kaydet
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -1151,6 +1173,44 @@
         box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
     }
 
+    .save-btn:active {
+        transform: translateY(0);
+    }
+
+    /* Delete Button */
+    .delete-btn {
+        background: var(--danger-gradient);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .delete-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5);
+        filter: brightness(1.1);
+    }
+
+    .delete-btn:active {
+        transform: translateY(0);
+    }
+
+    /* Button Group */
+    .modal-button-group {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 15px;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .modal-container {
@@ -1206,7 +1266,7 @@
                     metaHtml.push(`<span class="meta-badge" style="color: #fbbf24; font-weight: 700;"><i class="fas fa-star"></i> ${data.rating}/10</span>`);
                 }
                 if (data.year) {
-                    metaHtml.push(`<span class="meta-badge">${data.year}</span>`);
+                    metaHtml.push(`<span class="meta-badge">${Math.floor(data.year)}</span>`);
                 }
                 metaHtml.push(`<span class="meta-badge">${data.item_type_display}</span>`);
                 metaHtml.push(`<span class="meta-badge">${data.status_display}</span>`);
@@ -1376,6 +1436,39 @@
             }
         }
         return cookieValue;
+    }
+
+    // Delete functionality
+    function confirmDelete() {
+        if (!currentItemId) return;
+
+        const itemTitle = document.getElementById('modalTitle').textContent;
+        if (confirm(`"${itemTitle}" içeriğini silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+
+            fetch(`/api/watch-item/${currentItemId}/delete/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        closeModal();
+                        // Show success message
+                        alert('İçerik başarıyla silindi!');
+                        // Reload page to update list
+                        location.reload();
+                    } else {
+                        alert('Hata: ' + (data.error || 'Silme işlemi başarısız'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Delete error:', error);
+                    alert('Hata: Silme işlemi gerçekleştirilemedi');
+                });
+        }
     }
 
     // Star hover effects

@@ -44,6 +44,7 @@ urlpatterns = [
     # API Endpoints for Modal
     path('api/watch-item/<int:id>/', views.get_watch_item_json, name='get_watch_item_json'),
     path('api/watch-item/<int:id>/update/', views.update_watch_item_json, name='update_watch_item_json'),
+    path('api/watch-item/<int:id>/delete/', views.delete_watch_item_json, name='delete_watch_item_json'),
     path('izlediklerim/<int:id>/guncelle/', views.update_watch_progress, name='update_watch_progress'),
     path('izlediklerim/<int:id>/sil/', views.delete_watch_item, name='delete_watch_item'),
     

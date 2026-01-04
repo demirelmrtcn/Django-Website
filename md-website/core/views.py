@@ -976,6 +976,21 @@ def update_watch_item_json(request, id):
 
 
 @login_required
+def delete_watch_item_json(request, id):
+    """Delete watch item via AJAX - for modal delete button"""
+    if request.method != 'DELETE':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    try:
+        item = get_object_or_404(WatchItem, id=id, user=request.user)
+        item_title = item.title
+        item.delete()
+        return JsonResponse({'success': True, 'message': f'{item_title} silindi'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
 @require_POST
 def update_watch_progress(request, id):
     """Ajax endpoint to update progress"""
