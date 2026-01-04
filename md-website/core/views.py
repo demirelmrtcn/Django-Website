@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Sum
+from django.db.models import Sum, Avg, Count
 from django.utils import timezone
 from django.http import StreamingHttpResponse, FileResponse, JsonResponse
-from django.db import transaction
-from .models import Transaction, TrackedProduct, PriceHistory, Note, CalendarEvent, DecisionWheel, WheelOption, DecisionHistory
+from django.db import transaction, models
+from .models import (Transaction, TrackedProduct, PriceHistory, Note, CalendarEvent, 
+                     DecisionWheel, WheelOption, DecisionHistory, WatchItem, 
+                     Place, PlaceVisit, PlaceRecommendation)
 from .forms import TransactionForm, AddProductForm
 from .utils import get_product_details
 import datetime
@@ -795,3 +797,613 @@ def save_decision_history(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
+# ============================================================
+# WATCH TRACKER VIEWS
+# ============================================================
+
+@login_required
+def watch_tracker_dashboard(request):
+    """Main watch tracker page with all items"""
+    items = WatchItem.objects.filter(user=request.user)
+    
+    # Segmentation by status
+    ongoing = items.filter(status='ongoing')
+    completed = items.filter(status='completed')
+    planning = items.filter(status='planning')
+    paused = items.filter(status='paused')
+    
+    # Statistics
+    stats = {
+        'total_completed': completed.count(),
+        'movies_watched': completed.filter(item_type='movie').count(),
+        'series_watched': completed.filter(item_type='series').count(),
+        'books_read': completed.filter(item_type='book').count(),
+        'currently_watching': ongoing.count(),
+        'total_items': items.count(),
+    }
+    
+    # Filter by type if requested
+    filter_type = request.GET.get('type')
+    if filter_type:
+        items = items.filter(item_type=filter_type)
+    
+    context = {
+        'items': items,
+        'ongoing': ongoing,
+        'completed': completed,
+        'planning': planning,
+        'paused': paused,
+        'stats': stats,
+        'filter_type': filter_type,
+    }
+    return render(request, 'core/watch_tracker_netflix.html', context)
+
+
+@login_required
+@require_POST
+def add_watch_item(request):
+    """Add new watch item (AJAX)"""
+    try:
+        data = json.loads(request.body)
+        
+        item = WatchItem.objects.create(
+            user=request.user,
+            title=data.get('title'),
+            item_type=data.get('item_type'),
+            genre=data.get('genre', ''),
+            creator=data.get('creator', ''),
+            year=data.get('year'),
+            total_episodes=data.get('total_episodes'),
+            total_pages=data.get('total_pages'),
+            poster_url=data.get('poster_url', ''),
+            is_shared=data.get('is_shared', False),
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'id': item.id,
+            'title': item.title
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def watch_item_detail(request, id):
+    """View/edit individual watch item"""
+    item = get_object_or_404(WatchItem, id=id, user=request.user)
+    
+    if request.method == 'POST':
+        # Update item
+        item.status = request.POST.get('status', item.status)
+        item.rating = request.POST.get('rating', item.rating)
+        item.review = request.POST.get('review', item.review)
+        item.current_episode = request.POST.get('current_episode', item.current_episode)
+        item.current_page = request.POST.get('current_page', item.current_page)
+        
+        # Auto-complete if finished
+        if item.item_type in ['series', 'podcast', 'documentary']:
+            if item.total_episodes and int(item.current_episode) >= item.total_episodes:
+                item.status = 'completed'
+                item.completed_at = timezone.now()
+        elif item.item_type == 'book':
+            if item.total_pages and int(item.current_page) >= item.total_pages:
+                item.status = 'completed'
+                item.completed_at = timezone.now()
+        
+        item.save()
+        messages.success(request, 'Güncellendi!')
+        return redirect('watch_item_detail', id=id)
+    
+    context = {'item': item}
+    return render(request, 'core/watch_item_detail.html', context)
+
+
+@login_required
+def get_watch_item_json(request, id):
+    """API endpoint to get item details as JSON for modal"""
+    item = get_object_or_404(WatchItem, id=id, user=request.user)
+    
+    return JsonResponse({
+        'id': item.id,
+        'title': item.title,
+        'backdrop_url': item.backdrop_url or '',
+        'poster_url': item.poster_url or '',
+        'overview': item.overview or '',
+        'year': item.year,
+        'rating': item.rating,
+        'status': item.status,
+        'status_display': item.get_status_display(),
+        'item_type': item.item_type,
+        'item_type_display': item.get_item_type_display(),
+        'current_episode': item.current_episode or 0,
+        'total_episodes': item.total_episodes or 0,
+        'current_page': item.current_page or 0,
+        'total_pages': item.total_pages or 0,
+        'progress_percentage': item.progress_percentage,
+        'review': item.review or '',
+    })
+
+
+@login_required
+@require_POST
+def update_watch_item_json(request, id):
+    """API endpoint to update item via AJAX"""
+    item = get_object_or_404(WatchItem, id=id, user=request.user)
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Update fields
+        if 'status' in data:
+            item.status = data['status']
+        if 'rating' in data:
+            item.rating = data['rating'] if data['rating'] else None
+        if 'review' in data:
+            item.review = data['review']
+        if 'current_episode' in data:
+            item.current_episode = data['current_episode']
+        if 'current_page' in data:
+            item.current_page = data['current_page']
+        
+        # Auto-complete logic
+        if item.item_type in ['series', 'podcast', 'documentary']:
+            if item.total_episodes and item.current_episode >= item.total_episodes:
+                item.status = 'completed'
+                item.completed_at = timezone.now()
+        elif item.item_type == 'book':
+            if item.total_pages and item.current_page >= item.total_pages:
+                item.status = 'completed'
+                item.completed_at = timezone.now()
+        
+        item.save()
+        
+        return JsonResponse({
+            'success': True,
+            'item': {
+                'id': item.id,
+                'progress_percentage': item.progress_percentage,
+                'rating': item.rating,
+                'status': item.status,
+                'status_display': item.get_status_display(),
+            }
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+@login_required
+@require_POST
+def update_watch_progress(request, id):
+    """Ajax endpoint to update progress"""
+    item = get_object_or_404(WatchItem, id=id, user=request.user)
+    
+    try:
+        data = json.loads(request.body)
+        
+        if 'episode' in data:
+            item.current_episode = data['episode']
+        if 'page' in data:
+            item.current_page = data['page']
+        if 'status' in data:
+            item.status = data['status']
+            
+        item.save()
+        
+        return JsonResponse({
+            'success': True,
+            'progress': item.progress_percentage,
+            'is_completed': item.is_completed
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def delete_watch_item(request, id):
+    """Delete watch item"""
+    item = get_object_or_404(WatchItem, id=id, user=request.user)
+    item.delete()
+    messages.success(request, f'{item.title} silindi.')
+    return redirect('watch_tracker')
+
+
+# ============================================================
+# PLACE ARCHIVE VIEWS
+# ============================================================
+
+@login_required
+def place_archive_dashboard(request):
+    """Main restaurant/place archive"""
+    places = Place.objects.filter(user=request.user).order_by('-average_rating')
+    
+    # Filter by category if requested
+    category_filter = request.GET.get('category')
+    if category_filter:
+        places = places.filter(category=category_filter)
+    
+    # Statistics
+    all_visits = PlaceVisit.objects.filter(user=request.user)
+    stats = {
+        'total_places': places.count(),
+        'total_visits': all_visits.count(),
+        'favorite_count': places.filter(visits__is_favorite=True).distinct().count(),
+        'total_spent': all_visits.aggregate(Sum('cost'))['cost__sum'] or 0,
+        'average_rating': places.aggregate(models.Avg('average_rating'))['average_rating__avg'] or 0,
+    }
+    
+    # Top cuisine type
+    top_cuisine = places.values('cuisine_type').annotate(
+        count=models.Count('id')
+    ).order_by('-count').first()
+    if top_cuisine:
+        stats['top_cuisine'] = top_cuisine['cuisine_type']
+        stats['top_cuisine_count'] = top_cuisine['count']
+    
+    # Map data (for visualization)
+    map_data = []
+    for place in places.filter(latitude__isnull=False):
+        map_data.append({
+            'id': place.id,
+            'name': place.name,
+            'lat': float(place.latitude),
+            'lng': float(place.longitude),
+            'rating': float(place.average_rating),
+            'category': place.category,
+        })
+    
+    context = {
+        'places': places,
+        'stats': stats,
+        'map_data': json.dumps(map_data),
+        'category_filter': category_filter,
+    }
+    return render(request, 'core/place_archive.html', context)
+
+
+@login_required
+@require_POST
+def add_place_visit(request):
+    """Add new place visit"""
+    try:
+        # Check if place exists or create new
+        place_name = request.POST.get('place_name')
+        place_id = request.POST.get('place_id')
+        
+        if place_id:
+            place = get_object_or_404(Place, id=place_id, user=request.user)
+        else:
+            # Create new place
+            place = Place.objects.create(
+                user=request.user,
+                name=place_name,
+                category=request.POST.get('category', 'restaurant'),
+                cuisine_type=request.POST.get('cuisine_type', ''),
+                address=request.POST.get('address', ''),
+                city=request.POST.get('city', 'İstanbul'),
+                district=request.POST.get('district', ''),
+                price_range=int(request.POST.get('price_range', 2)),
+                phone=request.POST.get('phone', ''),
+            )
+        
+        # Create visit
+        visit = PlaceVisit.objects.create(
+            place=place,
+            user=request.user,
+            visit_date=request.POST.get('visit_date', timezone.now().date()),
+            rating=request.POST.get('rating'),
+            cost=request.POST.get('cost', 0),
+            notes=request.POST.get('notes', ''),
+            what_we_ate=request.POST.get('what_we_ate', ''),
+            would_return=request.POST.get('would_return', 'on') == 'on',
+            is_favorite=request.POST.get('is_favorite', 'off') == 'on',
+        )
+        
+        # Handle photo uploads
+        if 'photo1' in request.FILES:
+            visit.photo1 = request.FILES['photo1']
+        if 'photo2' in request.FILES:
+            visit.photo2 = request.FILES['photo2']
+        if 'photo3' in request.FILES:
+            visit.photo3 = request.FILES['photo3']
+        
+        visit.save()
+        messages.success(request, f'{place.name} ziyareti eklendi!')
+        return redirect('place_archive')
+        
+    except Exception as e:
+        messages.error(request, f'Hata: {str(e)}')
+        return redirect('place_archive')
+
+
+@login_required
+def place_detail(request, id):
+    """View individual place with visit history"""
+    place = get_object_or_404(Place, id=id, user=request.user)
+    visits = place.visits.all().order_by('-visit_date')
+    
+    context = {
+        'place': place,
+        'visits': visits,
+    }
+    return render(request, 'core/place_detail.html', context)
+
+
+@login_required
+def delete_place(request, id):
+    """Delete place and all visits"""
+    place = get_object_or_404(Place, id=id, user=request.user)
+    place_name = place.name
+    place.delete()
+    messages.success(request, f'{place_name} silindi.')
+    return redirect('place_archive')
+
+
+# ============================================================
+# RECOMMENDATION ENGINE
+# ============================================================
+
+def calculate_similarity_score(place1, place2):
+    """Calculate similarity between two places (0-100 score)"""
+    score = 0.0
+    
+    # Same cuisine: +40 points
+    if place1.cuisine_type and place2.cuisine_type:
+        if place1.cuisine_type.lower() == place2.cuisine_type.lower():
+            score += 40
+    
+    # Similar price range: +20 points (max)
+    price_diff = abs(place1.price_range - place2.price_range)
+    score += max(0, 20 - (price_diff * 10))
+    
+    # Similar rating: +20 points (max)
+    if place1.average_rating > 0 and place2.average_rating > 0:
+        rating_diff = abs(place1.average_rating - place2.average_rating)
+        score += max(0, 20 - (rating_diff * 4))
+    
+    # Close location (same district): +20 points
+    if place1.district and place2.district:
+        if place1.district.lower() == place2.district.lower():
+            score += 20
+    
+    return round(score, 2)
+
+
+def query_google_places(lat, lng, cuisine, radius=5000):
+    """Query Google Places API for recommendations"""
+    import requests
+    from django.conf import settings
+    
+    # Check if API key is configured
+    api_key = getattr(settings, 'GOOGLE_PLACES_API_KEY', None)
+    if not api_key:
+        return []
+    
+    url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+    params = {
+        'location': f"{lat},{lng}",
+        'radius': radius,
+        'type': 'restaurant',
+        'keyword': cuisine,
+        'key': api_key,
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            results = []
+            
+            for item in data.get('results', [])[:5]:
+                results.append({
+                    'name': item['name'],
+                    'address': item.get('vicinity', ''),
+                    'rating': item.get('rating', 0),
+                    'price_level': item.get('price_level', 2),
+                    'source': 'google',
+                    'score': item.get('rating', 0) * 10,  # Normalize to 0-50
+                    'google_place_id': item['place_id'],
+                    'lat': item['geometry']['location']['lat'],
+                    'lng': item['geometry']['location']['lng'],
+                })
+            
+            return results
+    except Exception as e:
+        print(f"Google Places API error: {e}")
+    
+    return []
+
+
+def generate_recommendations(place, user):
+    """
+    Hybrid recommendation algorithm:
+    1. Internal: Find similar places in user's database
+    2. External: Query Google Places API for nearby similar venues
+    """
+    recommendations = []
+    
+    # INTERNAL: Content-based filtering
+    similar_places = Place.objects.filter(
+        user=user,
+        cuisine_type__iexact=place.cuisine_type  # Case-insensitive
+    ).exclude(id=place.id).order_by('-average_rating')[:5]
+    
+    for similar in similar_places:
+        score = calculate_similarity_score(place, similar)
+        if score > 30:  # Only recommend if similarity > 30%
+            recommendations.append({
+                'name': similar.name,
+                'cuisine': similar.cuisine_type,
+                'rating': float(similar.average_rating),
+                'address': similar.address,
+                'source': 'internal',
+                'score': score,
+                'place_id': similar.id,
+            })
+    
+    # EXTERNAL: Google Places API (if enabled and location available)
+    if place.latitude and place.longitude:
+        external_recs = query_google_places(
+            lat=float(place.latitude),
+            lng=float(place.longitude),
+            cuisine=place.cuisine_type
+        )
+        recommendations.extend(external_recs)
+    
+    # Sort by score and return top 8
+    recommendations.sort(key=lambda x: x.get('score', 0), reverse=True)
+    return recommendations[:8]
+
+
+@login_required
+def get_place_recommendations(request, place_id):
+    """Get similar place recommendations (AJAX)"""
+    place = get_object_or_404(Place, id=place_id, user=request.user)
+    
+    # Check cache first (24 hour validity)
+    cache_validity = timezone.now() - timedelta(hours=24)
+    cached = PlaceRecommendation.objects.filter(
+        source_place=place,
+        created_at__gte=cache_validity
+    )[:8]
+    
+    if cached.exists():
+        # Use cached recommendations
+        recommendations = [rec.get_data() for rec in cached]
+    else:
+        # Generate new recommendations
+        recommendations = generate_recommendations(place, request.user)
+        
+        # Clear old cache
+        PlaceRecommendation.objects.filter(source_place=place).delete()
+        
+        # Cache results
+        for rec in recommendations:
+            cache_obj = PlaceRecommendation(
+                source_place=place,
+                similarity_score=rec.get('score', 0)
+            )
+            cache_obj.set_data(rec)  # Use helper method
+            cache_obj.save()
+    
+    return JsonResponse({'recommendations': recommendations})
+
+
+# ============================================================
+# DEDICATED ADD PAGES & API ENDPOINTS (REDESIGN)
+# ============================================================
+
+@login_required
+def add_watch_item_page(request):
+    """Dedicated page for adding watch items with TMDB search"""
+    if request.method == 'POST':
+        # Create item with TMDB data
+        item_type = request.POST.get('item_type', 'movie')
+        # Map TMDB types to our types
+        if item_type == 'tv':
+            item_type = 'series'
+        
+        item = WatchItem.objects.create(
+            user=request.user,
+            title=request.POST.get('title'),
+            item_type=item_type,
+            year=request.POST.get('year') or None,
+            creator=request.POST.get('creator', ''),
+            genre=request.POST.get('genre', ''),
+            overview=request.POST.get('overview', ''),
+            poster_url=request.POST.get('poster_url', ''),
+            backdrop_url=request.POST.get('backdrop_url', ''),
+            tmdb_id=request.POST.get('tmdb_id') or None,
+            total_episodes=request.POST.get('total_episodes') or None,
+            is_shared=request.POST.get('is_shared') == 'on',
+        )
+        
+        messages.success(request, f'{item.title} eklendi!')
+        return redirect('watch_tracker')
+    
+    return render(request, 'core/add_watch_item.html')
+
+
+@login_required
+def search_tmdb_ajax(request):
+    """AJAX endpoint for TMDB search"""
+    from .tmdb_api import search_multi
+    
+    query = request.GET.get('q', '')
+    if not query:
+        return JsonResponse({'results': []})
+    
+    results = search_multi(query)
+    return JsonResponse({'results': results})
+
+
+@login_required
+def add_place_visit_page(request):
+    """Dedicated page for adding place visits with Unsplash photos"""
+    from datetime import date
+    
+    if request.method == 'POST':
+        # Check if place exists or create new
+        place_name = request.POST.get('place_name')
+        
+        # Create new place with Unsplash photo
+        place = Place.objects.create(
+            user=request.user,
+            name=place_name,
+            category=request.POST.get('category', 'restaurant'),
+            cuisine_type=request.POST.get('cuisine_type', ''),
+            address=request.POST.get('address', ''),
+            city=request.POST.get('city', 'İstanbul'),
+            district=request.POST.get('district', ''),
+            price_range=int(request.POST.get('price_range', 2)),
+            photo_url=request.POST.get('photo_url', ''),
+            photo_photographer=request.POST.get('photo_photographer', ''),
+            unsplash_id=request.POST.get('unsplash_id', ''),
+        )
+        
+        # Create visit
+        PlaceVisit.objects.create(
+            place=place,
+            user=request.user,
+            visit_date=request.POST.get('visit_date', date.today()),
+            rating=request.POST.get('rating'),
+            cost=request.POST.get('cost', 0),
+            notes=request.POST.get('notes', ''),
+            what_we_ate=request.POST.get('what_we_ate', ''),
+            would_return=request.POST.get('would_return', 'on') == 'on',
+            is_favorite=request.POST.get('is_favorite', 'off') == 'on',
+        )
+        
+        messages.success(request, f'{place.name} ziyareti eklendi!')
+        return redirect('place_archive')
+    
+    context = {
+        'today': date.today().isoformat()
+    }
+    return render(request, 'core/add_place_visit.html', context)
+
+
+@login_required
+def fetch_place_photos_ajax(request):
+    """AJAX endpoint for fetching multiple Unsplash photos"""
+    from .unsplash_api import get_multiple_photos
+    
+    cuisine = request.GET.get('cuisine', 'food')
+    print(f"📸 Fetching photos for cuisine: {cuisine}")  # Debug log
+    
+    try:
+        photos = get_multiple_photos(cuisine, count=6)
+        print(f"📸 Found {len(photos)} photos")  # Debug log
+        
+        if not photos:
+            print("⚠️ No photos returned from Unsplash API")  # Debug log
+            
+        return JsonResponse({'photos': photos})
+    except Exception as e:
+        print(f"❌ Error fetching photos: {e}")  # Debug log
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'photos': [], 'error': str(e)})

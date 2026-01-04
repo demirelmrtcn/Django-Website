@@ -8,6 +8,7 @@
    ============================================ */
 :root {
     /* Primary Palette */
+    --primary: #667eea;
     --primary-start: #667eea;
     --primary-end: #764ba2;
     --primary-gradient: linear-gradient(135deg, var(--primary-start), var(--primary-end));
@@ -72,6 +73,7 @@
    2. DARK MODE
    ============================================ */
 [data-theme="dark"] {
+    --primary: #8b93ff;
     --text-primary: #f7fafc;
     --text-secondary: #cbd5e0;
     --text-muted: #718096;
@@ -126,10 +128,10 @@ body {
 }
 
 .navbar-logo {
-    width: 36px;
-    height: 36px;
+    width: 64px;
+    height: 64px;
     object-fit: contain;
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 .brand-text {
@@ -470,6 +472,18 @@ body {
 
 .mb-section {
     margin-bottom: var(--space-xl);
+}
+
+/* Netflix-Style Background Override */
+.bg-netflix {
+    background: #141414 !important;
+    min-height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+[data-theme="dark"] .bg-netflix {
+    background: #0a0a0a !important;
 }
 
 /* ============================================

@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Karar Verici - MyraMert{% endblock %}
+{% block title %}Karar Verici - MyraMD{% endblock %}
 {% block page_subtitle %} - Karar Verici{% endblock %}
 {% block navbar_extra %}
 <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
@@ -495,12 +495,10 @@
             </div>
 
             <div class="d-flex gap-2 mt-3">
-                <button class="btn btn-outline-secondary flex-grow-1" data-bs-toggle="modal"
-                    data-bs-target="#saveModal">
+                <button class="btn btn-outline-secondary flex-grow-1" data-bs-toggle="modal" data-bs-target="#saveModal">
                     <i class="fas fa-save me-2"></i>Kaydet
                 </button>
-                <button class="btn btn-outline-secondary flex-grow-1" data-bs-toggle="modal"
-                    data-bs-target="#loadModal">
+                <button class="btn btn-outline-secondary flex-grow-1" data-bs-toggle="modal" data-bs-target="#loadModal">
                     <i class="fas fa-folder-open me-2"></i>Yükle
                 </button>
             </div>
@@ -563,8 +561,7 @@
                         <strong>{{ wheel.name }}</strong>
                         <small class="text-muted d-block">{{ wheel.options.count }} seçenek</small>
                     </div>
-                    <a href="{% url 'delete_wheel' wheel.id %}" class="btn btn-sm btn-outline-danger"
-                        onclick="event.stopPropagation(); return confirm('Bu çarkı silmek istediğinize emin misiniz?');">
+                    <a href="{% url 'delete_wheel' wheel.id %}" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); return confirm('Bu çarkı silmek istediğinize emin misiniz?');">
                         <i class="fas fa-trash"></i>
                     </a>
                 </div>

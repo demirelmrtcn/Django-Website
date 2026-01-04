@@ -158,3 +158,16 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER', 'noreply@example.com')
 
+# Media files (uploaded content - place photos)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Google Places API (for restaurant recommendations)
+GOOGLE_PLACES_API_KEY = os.getenv('GOOGLE_PLACES_API_KEY', None)
+
+# TMDB API (for movie/series posters and metadata)
+TMDB_API_KEY = os.getenv('TMDB_API_KEY', None)
+
+# Unsplash API (for restaurant photos)
+UNSPLASH_ACCESS_KEY = os.getenv('UNSPLASH_ACCESS_KEY', None)
+

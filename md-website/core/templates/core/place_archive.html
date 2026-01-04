@@ -1,0 +1,624 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Mekanlar - MyraMD{% endblock %}
+{% block page_subtitle %} / Mekanlar{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Statistics Section */
+    .stats-overview {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-box {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 25px;
+        box-shadow: 0 4px 20px var(--shadow-color);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: var(--accent-gradient);
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        opacity: 0.3;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 5px;
+    }
+
+    .stat-title {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Place Cards Grid */
+    .places-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 25px;
+    }
+
+    .place-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: 0 4px 15px var(--shadow-color);
+        transition: var(--transition-base);
+        cursor: pointer;
+    }
+
+    .place-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px var(--shadow-color);
+    }
+
+    .place-header {
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        position: relative;
+    }
+
+    .place-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .place-cuisine {
+        opacity: 0.9;
+        font-size: 0.9rem;
+    }
+
+    .place-rating {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        padding: 8px 12px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .rating-star {
+        color: #fbbf24;
+        font-size: 0.9rem;
+    }
+
+    .rating-value {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .place-body {
+        padding: 20px;
+    }
+
+    .place-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .meta-item i {
+        width: 18px;
+        color: var(--primary);
+    }
+
+    .place-stats {
+        display: flex;
+        justify-content: space-around;
+        padding: 15px 0;
+        border-top: 1px solid var(--bg-secondary);
+        border-bottom: 1px solid var(--bg-secondary);
+        margin-bottom: 15px;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-item-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .stat-item-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+    }
+
+    .place-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-place {
+        flex: 1;
+        padding: 10px;
+        border-radius: var(--radius-md);
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: var(--transition-base);
+        font-size: 0.85rem;
+    }
+
+    .btn-details {
+        background: var(--primary-gradient);
+        color: white;
+    }
+
+    .btn-details:hover {
+        transform: scale(1.05);
+    }
+
+    .btn-delete-place {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .btn-delete-place:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    /* Price Range Indicator */
+    .price-range {
+        display: inline-flex;
+        gap: 2px;
+    }
+
+    .price-symbol {
+        color: #10b981;
+    }
+
+    .price-symbol.inactive {
+        color: var(--text-secondary);
+        opacity: 0.3;
+    }
+
+    /* Category Filter */
+    .category-filters {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 30px;
+    }
+
+    .category-chip {
+        padding: 10px 18px;
+        background: var(--bg-card);
+        border: 2px solid transparent;
+        border-radius: 50px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: var(--transition-base);
+        font-size: 0.9rem;
+    }
+
+    .category-chip:hover {
+        border-color: var(--accent);
+    }
+
+    .category-chip.active {
+        background: var(--accent-gradient);
+        color: white;
+        border-color: transparent;
+    }
+
+    /* Add Button */
+    .floating-add-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 65px;
+        height: 65px;
+        background: var(--accent-gradient);
+        border-radius: 50%;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 8px 25px rgba(247, 144, 9, 0.4);
+        transition: var(--transition-base);
+        z-index: 100;
+    }
+
+    .floating-add-btn:hover {
+        transform: scale(1.1) rotate(90deg);
+        box-shadow: 0 12px 35px rgba(247, 144, 9, 0.6);
+    }
+
+    /* Empty State */
+    .empty-places {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-places i {
+        font-size: 80px;
+        color: var(--text-secondary);
+        opacity: 0.3;
+        margin-bottom: 20px;
+    }
+
+    .empty-places h3 {
+        color: var(--text-primary);
+    }
+
+    .empty-places p {
+        color: var(--text-secondary);
+    }
+
+    /* Add Form Modal */
+    .add-place-modal {
+        max-width: 700px;
+        margin: 40px auto;
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 30px;
+        box-shadow: 0 10px 40px var(--shadow-color);
+    }
+
+    .modal-title {
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 25px;
+    }
+
+    .form-section {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 12px 15px;
+        background: var(--bg-secondary);
+        border: 2px solid transparent;
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        transition: var(--transition-base);
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 15px;
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: var(--transition-base);
+        margin-top: 10px;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(247, 144, 9, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="glass-section mb-4">
+    <h1>
+        <i class="fas fa-map-marker-alt me-3"></i>
+        Mekanlar
+    </h1>
+    <p class="mb-0">Gittiğin restoranları, kafeleri ve mekanları kaydet, hatırla</p>
+</div>
+
+<!-- Statistics -->
+<div class="stats-overview">
+    <div class="stat-box">
+        <i class="fas fa-map-marked-alt stat-icon"></i>
+        <div class="stat-number">{{ stats.total_places }}</div>
+        <div class="stat-title">Toplam Mekan</div>
+    </div>
+    <div class="stat-box">
+        <i class="fas fa-history stat-icon"></i>
+        <div class="stat-number">{{ stats.total_visits }}</div>
+        <div class="stat-title">Ziyaret Sayısı</div>
+    </div>
+    <div class="stat-box">
+        <i class="fas fa-heart stat-icon"></i>
+        <div class="stat-number">{{ stats.favorite_count }}</div>
+        <div class="stat-title">Favori Mekan</div>
+    </div>
+    <div class="stat-box">
+        <i class="fas fa-lira-sign stat-icon"></i>
+        <div class="stat-number">{{ stats.total_spent|floatformat:0|intcomma }}</div>
+        <div class="stat-title">Toplam Harcama</div>
+    </div>
+    {% if stats.top_cuisine %}
+    <div class="stat-box">
+        <i class="fas fa-utensils stat-icon"></i>
+        <div class="stat-number">{{ stats.top_cuisine }}</div>
+        <div class="stat-title">En Sevilen Mutfak</div>
+    </div>
+    {% endif %}
+    <div class="stat-box">
+        <i class="fas fa-star stat-icon"></i>
+        <div class="stat-number">{{ stats.average_rating|floatformat:1 }}</div>
+        <div class="stat-title">Ortalama Puan</div>
+    </div>
+</div>
+
+<!-- Category Filters -->
+<div class="category-filters">
+    <a href="{% url 'place_archive' %}" class="category-chip {% if not category_filter %}active{% endif %}">
+        <i class="fas fa-th me-2"></i>Tümü
+    </a>
+    <a href="?category=restaurant" class="category-chip {% if category_filter == 'restaurant' %}active{% endif %}">
+        <i class="fas fa-utensils me-2"></i>Restoran
+    </a>
+    <a href="?category=cafe" class="category-chip {% if category_filter == 'cafe' %}active{% endif %}">
+        <i class="fas fa-coffee me-2"></i>Kafe
+    </a>
+    <a href="?category=bar" class="category-chip {% if category_filter == 'bar' %}active{% endif %}">
+        <i class="fas fa-glass-martini me-2"></i>Bar
+    </a>
+    <a href="?category=fastfood" class="category-chip {% if category_filter == 'fastfood' %}active{% endif %}">
+        <i class="fas fa-hamburger me-2"></i>Fast Food
+    </a>
+    <a href="?category=dessert" class="category-chip {% if category_filter == 'dessert' %}active{% endif %}">
+        <i class="fas fa-ice-cream me-2"></i>Tatlı
+    </a>
+</div>
+
+<!-- Places Grid -->
+{% if places %}
+<div class="places-grid">
+    {% for place in places %}
+    <div class="place-card" onclick="window.location.href='{% url 'place_detail' place.id %}'">
+        <div class="place-header">
+            <div class="place-rating">
+                <i class="fas fa-star rating-star"></i>
+                <span class="rating-value">{{ place.average_rating|floatformat:1 }}</span>
+            </div>
+            <div class="place-name">{{ place.name }}</div>
+            <div class="place-cuisine">
+                {% if place.cuisine_type %}{{ place.cuisine_type }} •{% endif %}
+                {{ place.get_category_display }}
+            </div>
+        </div>
+        <div class="place-body">
+            <div class="place-meta">
+                {% if place.address %}
+                <div class="meta-item">
+                    <i class="fas fa-map-pin"></i>
+                    <span>{{ place.district }}, {{ place.city }}</span>
+                </div>
+                {% endif %}
+                <div class="meta-item">
+                    <i class="fas fa-coins"></i>
+                    <span class="price-range">
+                        {% for i in "1234" %}
+                        <span class="price-symbol {% if forloop.counter > place.price_range %}inactive{% endif %}">₺</span>
+                        {% endfor %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="place-stats">
+                <div class="stat-item">
+                    <div class="stat-item-value">{{ place.times_visited }}</div>
+                    <div class="stat-item-label">Ziyaret</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-item-value">{{ place.average_cost|floatformat:0 }}₺</div>
+                    <div class="stat-item-label">Ort. Harcama</div>
+                </div>
+            </div>
+
+            <div class="place-actions" onclick="event.stopPropagation()">
+                <button class="btn-place btn-details" onclick="window.location.href='{% url 'place_detail' place.id %}'">
+                    <i class="fas fa-info-circle me-1"></i>Detay
+                </button>
+                <form method="post" action="{% url 'delete_place' place.id %}" style="flex: 0.3;" onsubmit="return confirm('{{ place.name }} silinsin mi?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-place btn-delete-place">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-places">
+    <i class="fas fa-map-marked-alt"></i>
+    <h3>Henüz mekan eklemedin</h3>
+    <p>Gittiğin restoranları, kafeleri ekleyerek arşivini oluştur!</p>
+</div>
+{% endif %}
+
+<!-- Floating Add Button -->
+<a href="{% url 'add_place_visit_page' %}" class="floating-add-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+    <i class="fas fa-plus"></i>
+</a>
+
+<!-- Add Place Form -->
+<div class="add-place-modal" id="add-form" style="margin-top: 60px;">
+    <h2 class="modal-title">
+        <i class="fas fa-plus-circle me-2"></i>
+        Yeni Mekan Ziyareti Ekle
+    </h2>
+    <form method="post" action="{% url 'add_place_visit' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-section">
+            <label class="form-label">Mekan Adı *</label>
+            <input type="text" name="place_name" class="form-input" required>
+        </div>
+
+        <div class="form-row">
+            <div class="form-section">
+                <label class="form-label">Kategori *</label>
+                <select name="category" class="form-input" required>
+                    <option value="restaurant">Restoran</option>
+                    <option value="cafe">Kafe</option>
+                    <option value="bar">Bar/Pub</option>
+                    <option value="fastfood">Fast Food</option>
+                    <option value="bakery">Fırın/Pastane</option>
+                    <option value="dessert">Tatlı/Dondurma</option>
+                    <option value="other">Diğer</option>
+                </select>
+            </div>
+            <div class="form-section">
+                <label class="form-label">Mutfak Türü</label>
+                <input type="text" name="cuisine_type" class="form-input" placeholder="İtalyan, Türk, Japon...">
+            </div>
+        </div>
+
+        <div class="form-section">
+            <label class="form-label">Adres</label>
+            <input type="text" name="address" class="form-input">
+        </div>
+
+        <div class="form-row">
+            <div class="form-section">
+                <label class="form-label">İlçe</label>
+                <input type="text" name="district" class="form-input" placeholder="Kadıköy">
+            </div>
+            <div class="form-section">
+                <label class="form-label">Şehir</label>
+                <input type="text" name="city" class="form-input" value="İstanbul">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-section">
+                <label class="form-label">Fiyat Aralığı *</label>
+                <select name="price_range" class="form-input" required>
+                    <option value="1">₺ (Ekonomik)</option>
+                    <option value="2" selected>₺₺ (Orta)</option>
+                    <option value="3">₺₺₺ (Pahalı)</option>
+                    <option value="4">₺₺₺₺ (Lüks)</option>
+                </select>
+            </div>
+            <div class="form-section">
+                <label class="form-label">Telefon</label>
+                <input type="tel" name="phone" class="form-input">
+            </div>
+        </div>
+
+        <hr style="margin: 25px 0; border-color: var(--bg-secondary);">
+        <h3 style="color: var(--text-primary); font-size: 1.1rem; margin-bottom: 20px;">Ziyaret Bilgileri</h3>
+
+        <div class="form-row">
+            <div class="form-section">
+                <label class="form-label">Ziyaret Tarihi *</label>
+                <input type="date" name="visit_date" class="form-input" value="{{ today.isoformat }}" required>
+            </div>
+            <div class="form-section">
+                <label class="form-label">Puan (0-5) *</label>
+                <input type="number" name="rating" class="form-input" min="0" max="5" step="0.5" required>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <label class="form-label">Harcama (₺)</label>
+            <input type="number" name="cost" class="form-input" min="0" step="0.01">
+        </div>
+
+        <div class="form-section">
+            <label class="form-label">Ne Yedik?</label>
+            <textarea name="what_we_ate" class="form-input" rows="2" placeholder="Margherita Pizza, Caesar Salad..."></textarea>
+        </div>
+
+        <div class="form-section">
+            <label class="form-label">Notlar</label>
+            <textarea name="notes" class="form-input" rows="3" placeholder="Harika bir deneyimdi, servis çok iyiydi..."></textarea>
+        </div>
+
+        <div class="form-section">
+            <label class="form-label">Fotoğraflar (Max 3)</label>
+            <input type="file" name="photo1" class="form-input" accept="image/*">
+            <input type="file" name="photo2" class="form-input" accept="image/*" style="margin-top: 10px;">
+            <input type="file" name="photo3" class="form-input" accept="image/*" style="margin-top: 10px;">
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 20px;">
+            <label style="color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" name="is_favorite">
+                <span>Favori mekan</span>
+            </label>
+            <label style="color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" name="would_return" checked>
+                <span>Tekrar giderim</span>
+            </label>
+        </div>
+
+        <button type="submit" class="submit-btn">
+            <i class="fas fa-check me-2"></i>
+            Kaydet
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

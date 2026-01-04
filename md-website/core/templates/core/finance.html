@@ -3,7 +3,7 @@
 {% load custom_filters %}
 {% load static %}
 
-{% block title %}Cüzdanım - MyraMert{% endblock %}
+{% block title %}Cüzdanım - MyraMD{% endblock %}
 {% block page_subtitle %} - Cüzdanım{% endblock %}
 
 {% block navbar_extra %}
@@ -214,8 +214,7 @@
         </a>
 
         <form method="get" class="d-inline">
-            <select name="date" class="month-dropdown" onchange="this.form.submit()" id="monthSelector"
-                data-selected="{{ selected_month_str }}">
+            <select name="date" class="month-dropdown" onchange="this.form.submit()" id="monthSelector" data-selected="{{ selected_month_str }}">
                 {% for m in month_list %}
                 <option value="{{ m|date:'Y-m' }}">
                     {{ m|date:"F Y" }}
@@ -314,15 +313,12 @@
     <div class="col-md-4">
         <div class="mini-stat">
             <div class="d-flex align-items-center">
-                <div class="mini-stat-icon me-3"
-                    style="background: {% if expense_change_percent > 0 %}rgba(239, 68, 68, 0.1){% else %}rgba(16, 185, 129, 0.1){% endif %};">
-                    <i class="fas {% if expense_change_percent > 0 %}fa-arrow-trend-up{% else %}fa-arrow-trend-down{% endif %}"
-                        style="color: {% if expense_change_percent > 0 %}var(--danger-start){% else %}var(--success-start){% endif %};"></i>
+                <div class="mini-stat-icon me-3" style="background: {% if expense_change_percent > 0 %}rgba(239, 68, 68, 0.1){% else %}rgba(16, 185, 129, 0.1){% endif %};">
+                    <i class="fas {% if expense_change_percent > 0 %}fa-arrow-trend-up{% else %}fa-arrow-trend-down{% endif %}" style="color: {% if expense_change_percent > 0 %}var(--danger-start){% else %}var(--success-start){% endif %};"></i>
                 </div>
                 <div>
                     <small class="text-muted">Önceki Aya Göre</small>
-                    <h5
-                        class="mb-0 fw-bold {% if expense_change_percent > 0 %}text-danger{% else %}text-success{% endif %}">
+                    <h5 class="mb-0 fw-bold {% if expense_change_percent > 0 %}text-danger{% else %}text-success{% endif %}">
                         {% if expense_change_percent > 0 %}+{% endif %}{{ expense_change_percent }}%
                     </h5>
                 </div>
@@ -381,14 +377,12 @@
                         Döngüsel</span>
                     {% endif %}
                 </td>
-                <td
-                    class="text-end {% if item.transaction_type == 'income' %}amount-income{% else %}amount-expense{% endif %} fs-5">
+                <td class="text-end {% if item.transaction_type == 'income' %}amount-income{% else %}amount-expense{% endif %} fs-5">
                     {% if item.transaction_type == 'income' %}+{% else %}-{% endif %}
                     {{ item.amount|floatformat:0|intcomma }} ₺
                 </td>
                 <td class="text-center">
-                    <a href="{% url 'delete_transaction' item.id %}" class="btn btn-link text-danger"
-                        onclick="return confirm('Silmek istediğine emin misin?');">
+                    <a href="{% url 'delete_transaction' item.id %}" class="btn btn-link text-danger" onclick="return confirm('Silmek istediğine emin misin?');">
                         <i class="fas fa-trash-alt"></i>
                     </a>
                 </td>

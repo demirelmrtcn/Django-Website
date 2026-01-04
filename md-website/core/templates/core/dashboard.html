@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Dashboard - MyraMert{% endblock %}
+{% block title %}Dashboard - MyraMD{% endblock %}
 
 
 {% block extra_css %}
@@ -165,8 +165,43 @@
             </div>
             <h3>Karar Verici</h3>
             <p>Kararsız mısın? Çarkı çevir veya yazı-tura at, kararı şansa bırak!</p>
-            <a href="{% url 'decision_maker' %}" class="btn-primary-gradient"
-                style="background: linear-gradient(135deg, #FF6B6B, #4ECDC4);">
+            <a href="{% url 'decision_maker' %}" class="btn-primary-gradient" style="background: linear-gradient(135deg, #FF6B6B, #4ECDC4);">
+                <i class="fas fa-arrow-right"></i>
+                Hemen Başla
+            </a>
+        </div>
+    </div>
+
+    <!-- Watch Tracker Card -->
+    <div class="col-md-6">
+        <div class="feature-card">
+            <span class="stats-badge" style="background: linear-gradient(135deg, #e91e63, #9c27b0); color: white;">
+                <i class="fas fa-fire me-1"></i> Yeni
+            </span>
+            <div class="feature-icon" style="background: linear-gradient(135deg, #e91e63, #9c27b0);">
+                <i class="fas fa-film"></i>
+            </div>
+            <h3>Dizi/Film Takip</h3>
+            <p>İzlediğin film, dizi ve kitapları kaydet, ilerlemeni takip et, rating ver.</p>
+            <a href="{% url 'watch_tracker' %}" class="btn-primary-gradient" style="background: linear-gradient(135deg, #e91e63, #9c27b0);">
+                <i class="fas fa-arrow-right"></i>
+                Hemen Başla
+            </a>
+        </div>
+    </div>
+
+    <!-- Place Archive Card -->
+    <div class="col-md-6">
+        <div class="feature-card accent">
+            <span class="stats-badge" style="background: linear-gradient(135deg, #f7900  9, #ff6f00); color: white;">
+                <i class="fas fa-sparkles me-1"></i> Yeni
+            </span>
+            <div class="feature-icon" style="background: linear-gradient(135deg, #f79009, #ff6f00);">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <h3>Mekanlar</h3>
+            <p>Gittiğin restoranları, kafeleri kaydet, hatırla, AI ile benzer mekanlar keşfet.</p>
+            <a href="{% url 'place_archive' %}" class="btn-accent-gradient" style="background: linear-gradient(135deg, #f79009, #ff6f00);">
                 <i class="fas fa-arrow-right"></i>
                 Hemen Başla
             </a>
