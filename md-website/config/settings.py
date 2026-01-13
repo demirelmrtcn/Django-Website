@@ -165,9 +165,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Google Places API (for restaurant recommendations)
 GOOGLE_PLACES_API_KEY = os.getenv('GOOGLE_PLACES_API_KEY', None)
 
-# TMDB API (for movie/series posters and metadata)
-TMDB_API_KEY = os.getenv('TMDB_API_KEY', None)
+# OMDb API (alternative to TMDB for movies)
+OMDB_API_KEY = os.getenv('OMDB_API_KEY', None)
 
 # Unsplash API (for restaurant photos)
 UNSPLASH_ACCESS_KEY = os.getenv('UNSPLASH_ACCESS_KEY', None)
+
 

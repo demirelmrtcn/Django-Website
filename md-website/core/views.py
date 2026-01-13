@@ -1313,13 +1313,21 @@ def get_place_recommendations(request, place_id):
 
 @login_required
 def add_watch_item_page(request):
-    """Dedicated page for adding watch items with TMDB search"""
+    """Dedicated page for adding watch items with OMDb + TVMaze hybrid search"""
     if request.method == 'POST':
-        # Create item with TMDB data
+        # Create item with hybrid API data (OMDb or TVMaze)
         item_type = request.POST.get('item_type', 'movie')
-        # Map TMDB types to our types
+        # Map API types to our types
         if item_type == 'tv':
             item_type = 'series'
+        
+        # Handle tmdb_id safely - hybrid API doesn't use it
+        # Get tmdb_id if provided, otherwise None (not 'undefined' string)
+        tmdb_id_value = request.POST.get('tmdb_id', '')
+        if tmdb_id_value and tmdb_id_value != 'undefined' and tmdb_id_value.isdigit():
+            tmdb_id = int(tmdb_id_value)
+        else:
+            tmdb_id = None
         
         item = WatchItem.objects.create(
             user=request.user,
@@ -1331,7 +1339,7 @@ def add_watch_item_page(request):
             overview=request.POST.get('overview', ''),
             poster_url=request.POST.get('poster_url', ''),
             backdrop_url=request.POST.get('backdrop_url', ''),
-            tmdb_id=request.POST.get('tmdb_id') or None,
+            tmdb_id=tmdb_id,  # Now safely handled
             total_episodes=request.POST.get('total_episodes') or None,
             is_shared=request.POST.get('is_shared') == 'on',
         )
@@ -1344,8 +1352,8 @@ def add_watch_item_page(request):
 
 @login_required
 def search_tmdb_ajax(request):
-    """AJAX endpoint for TMDB search"""
-    from .tmdb_api import search_multi
+    """AJAX endpoint for OMDb + TVMaze hybrid search"""
+    from .media_api import search_multi
     
     query = request.GET.get('q', '')
     if not query:
