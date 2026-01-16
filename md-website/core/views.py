@@ -1082,7 +1082,9 @@ def place_archive_dashboard(request):
 @login_required
 @require_POST
 def add_place_visit(request):
-    """Add new place visit"""
+    """Add new place visit with context-aware photo fetching"""
+    from .unsplash_api import search_place_photo
+    
     try:
         # Check if place exists or create new
         place_name = request.POST.get('place_name')
@@ -1091,18 +1093,41 @@ def add_place_visit(request):
         if place_id:
             place = get_object_or_404(Place, id=place_id, user=request.user)
         else:
-            # Create new place
+            # Get place details for photo search
+            category = request.POST.get('category', 'restaurant')
+            cuisine_type = request.POST.get('cuisine_type', '')
+            city = request.POST.get('city', 'İstanbul')
+            district = request.POST.get('district', '')
+            
+            # ULTRATHINK: Context-aware photo search
+            photo_data = search_place_photo(
+                place_name=place_name,
+                city=city,
+                district=district if district else None,
+                cuisine_type=cuisine_type if cuisine_type else None,
+                category=category
+            )
+            
+            # Create new place with photo
             place = Place.objects.create(
                 user=request.user,
                 name=place_name,
-                category=request.POST.get('category', 'restaurant'),
-                cuisine_type=request.POST.get('cuisine_type', ''),
+                category=category,
+                cuisine_type=cuisine_type,
                 address=request.POST.get('address', ''),
-                city=request.POST.get('city', 'İstanbul'),
-                district=request.POST.get('district', ''),
+                city=city,
+                district=district,
                 price_range=int(request.POST.get('price_range', 2)),
                 phone=request.POST.get('phone', ''),
+                # Photo data from search
+                photo_url=photo_data.get('url', '') if photo_data else '',
+                photo_photographer=photo_data.get('photographer', '') if photo_data else '',
+                unsplash_id=photo_data.get('unsplash_id', '') if photo_data else '',
             )
+            
+            # Log which search stage was used (for debugging)
+            if photo_data and 'search_stage' in photo_data:
+                print(f"📍 Place '{place_name}': Photo from Stage {photo_data['search_stage']}")
         
         # Create visit
         visit = PlaceVisit.objects.create(
@@ -1116,16 +1141,8 @@ def add_place_visit(request):
             would_return=request.POST.get('would_return', 'on') == 'on',
             is_favorite=request.POST.get('is_favorite', 'off') == 'on',
         )
+        # Photos now come from Place's Unsplash photo, not user uploads
         
-        # Handle photo uploads
-        if 'photo1' in request.FILES:
-            visit.photo1 = request.FILES['photo1']
-        if 'photo2' in request.FILES:
-            visit.photo2 = request.FILES['photo2']
-        if 'photo3' in request.FILES:
-            visit.photo3 = request.FILES['photo3']
-        
-        visit.save()
         messages.success(request, f'{place.name} ziyareti eklendi!')
         return redirect('place_archive')
         

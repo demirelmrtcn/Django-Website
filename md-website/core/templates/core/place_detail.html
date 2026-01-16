@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}{{ place.name }} - Mekanlar{% endblock %}
-{% block page_subtitle %} / Mekanlar / {{ place.name }}{% endblock %}
+{% block page_subtitle %} - Mekanlar - {{ place.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -182,10 +182,10 @@
                 <div class="visit-rating">
                     {% for i in "12345" %}
                     {% if forloop.counter <= visit.rating %} <i class="fas fa-star star"></i>
-                        {% else %}
-                        <i class="far fa-star" style="color: var(--text-secondary);"></i>
-                        {% endif %}
-                        {% endfor %}
+                    {% else %}
+                    <i class="far fa-star" style="color: var(--text-secondary);"></i>
+                    {% endif %}
+                    {% endfor %}
                 </div>
             </div>
 
