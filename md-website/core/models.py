@@ -92,6 +92,12 @@ class PriceHistory(models.Model):
 
     def __str__(self):
         return f"{self.product.product_name} - {self.price} ({self.date})"
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['product', '-date']),  # Optimize price history queries
+        ]
+        ordering = ['-date']
 
 
 class UserProfile(models.Model):
@@ -129,53 +135,7 @@ class UserProfile(models.Model):
         verbose_name_plural = "Kullanıcı Profilleri"
 
 
-class Note(models.Model):
-    """Not modeli - Apple Notes benzeri zengin metin desteği"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200, default="Yeni Not", verbose_name="Başlık")
-    content = models.TextField(blank=True, verbose_name="İçerik")  # HTML content (rich text)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Güncelleme")
-    is_pinned = models.BooleanField(default=False, verbose_name="Sabitlenmiş")
-    color = models.CharField(max_length=20, default="#ffffff", verbose_name="Renk")
-
-    def __str__(self):
-        return self.title
-
-    class Meta:
-        ordering = ['-is_pinned', '-updated_at']
-        verbose_name = "Not"
-        verbose_name_plural = "Notlar"
-
-
-class CalendarEvent(models.Model):
-    """Takvim etkinliği modeli - Apple Calendar benzeri"""
-    EVENT_TYPES = [
-        ('event', 'Etkinlik'),
-        ('reminder', 'Hatırlatıcı'),
-        ('birthday', 'Doğum Günü'),
-        ('special', 'Özel An'),
-    ]
-    
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200, verbose_name="Başlık")
-    description = models.TextField(blank=True, verbose_name="Açıklama")
-    start_date = models.DateField(verbose_name="Başlangıç")
-    end_date = models.DateField(null=True, blank=True, verbose_name="Bitiş")
-    event_type = models.CharField(max_length=20, choices=EVENT_TYPES, default='event', verbose_name="Tür")
-    color = models.CharField(max_length=20, default="#667eea", verbose_name="Renk")
-    all_day = models.BooleanField(default=True, verbose_name="Tüm Gün")
-    is_recurring = models.BooleanField(default=False, verbose_name="Her Yıl Tekrarla")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma")
-
-
-    def __str__(self):
-        return f"{self.title} ({self.start_date})"
-
-    class Meta:
-        ordering = ['start_date']
-        verbose_name = "Takvim Etkinliği"
-        verbose_name_plural = "Takvim Etkinlikleri"
+# Note and CalendarEvent models removed - unused features
 
 
 # ============================================================

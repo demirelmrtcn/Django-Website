@@ -5,7 +5,7 @@ from django.db.models import Sum, Avg, Count
 from django.utils import timezone
 from django.http import StreamingHttpResponse, FileResponse, JsonResponse
 from django.db import transaction, models
-from .models import (Transaction, TrackedProduct, PriceHistory, Note, CalendarEvent, 
+from .models import (Transaction, TrackedProduct, PriceHistory, 
                      DecisionWheel, WheelOption, DecisionHistory, WatchItem, 
                      Place, PlaceVisit, PlaceRecommendation)
 from .forms import TransactionForm, AddProductForm

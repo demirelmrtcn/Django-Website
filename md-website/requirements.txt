@@ -6,3 +6,4 @@ python-dateutil
 python-dotenv
 requests
 yt-dlp
+django-jazzmin
