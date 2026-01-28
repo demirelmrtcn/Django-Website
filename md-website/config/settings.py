@@ -182,7 +182,7 @@ JAZZMIN_SETTINGS = {
     "site_brand": "MyraMD Dashboard",
     "welcome_sign": "MyraMD Admin Paneline Hos Geldiniz",  # ASCII only to avoid encoding issues
     "copyright": "MyraMD 2026",
-    "search_model": ["core.WatchItem", "core.Place", "core.Transaction"],
+    "search_model": ["core.Transaction", "core.TrackedProduct"],
     "topmenu_links": [
         {"name": "Ana Sayfa", "url": "admin:index"},
         {"name": "Site", "url": "/", "new_window": True},
@@ -191,14 +191,12 @@ JAZZMIN_SETTINGS = {
     "navigation_expanded": True,
     "icons": {
         "auth": "fas fa-users-cog",
-        "core.WatchItem": "fas fa-film",
-        "core.Place": "fas fa-utensils",
         "core.Transaction": "fas fa-dollar-sign",
         "core.TrackedProduct": "fas fa-shopping-cart",
-        "core.DecisionWheel": "fas fa-dice",
     },
     "related_modal_active": True,
 }
+
 
 JAZZMIN_UI_TWEAKS = {
     "navbar": "navbar-dark navbar-navy",
