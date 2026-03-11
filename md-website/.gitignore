@@ -14,3 +14,6 @@ env/
 # IDE
 .idea/
 .vscode/
+
+# DB
+.sqlite3

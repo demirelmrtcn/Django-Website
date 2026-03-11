@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.urls import path
 from django.contrib.auth import views as auth_views # Django'nun hazır giriş/çıkış sistemi
 from core import views # Bizim yazdığımız views dosyası
+from django.conf import settings
+from django.conf.urls.static import static
 # Registration disabled - users can only be created via admin panel
 # Registration URLs removed: register, verify_email, resend_verification_code
 
@@ -30,3 +32,7 @@ urlpatterns = [
 
 ]
 
+# Statik ve medya dosyalarını development sunucusunda sun
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
